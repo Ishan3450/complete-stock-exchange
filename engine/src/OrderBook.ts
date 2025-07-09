@@ -7,7 +7,7 @@ interface Order {
     filled: number;
 }
 
-interface Fill {
+export interface Fill {
     price: number;
     quantity: number;
     fillOwnerId: string;
