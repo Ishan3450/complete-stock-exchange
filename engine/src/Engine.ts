@@ -1,4 +1,4 @@
-import { Fill, OrderBook } from "./OrderBook";
+import { Fill, OrderBook, OrderExecuted } from "./OrderBook";
 import { MessageFromApiServer } from "./types/fromApi";
 // import { MessageToApiServer } from "./types/toApi";
 
@@ -11,14 +11,16 @@ interface User {
 }
 
 export class Engine {
-    market: Map<string, OrderBook>; // base_quote -> orderbook
+    markets: Map<string, OrderBook>; // base_quote -> orderbook
     users: Map<string, User>; // userId -> info
+    lastTradeId: number;
     // TODO: add trade type array containing globally happened trades for audit/log purpose
     // trades: Trade[];
 
     constructor() {
-        this.market = new Map<string, OrderBook>();
+        this.markets = new Map<string, OrderBook>();
         this.users = new Map<string, User>();
+        this.lastTradeId = -1;
 
         this._addDemoData();
     }
@@ -42,7 +44,7 @@ export class Engine {
         }
     }
 
-    _createOrder(quantity: number, price: number, market: string, side: "buy" | "sell", userId: string): { quantityExecuted: number, fills: Fill[], orderId: number } {
+    _createOrder(quantity: number, price: number, market: string, side: "buy" | "sell", userId: string): { executedQuantity: number, fills: Fill[], orderId: number } {
         const marketInfo = market.split("_");
         const baseAsset = marketInfo[0];
         const quoteAsset = marketInfo[1];
@@ -50,15 +52,20 @@ export class Engine {
         this._checkSufficientFundsOrHoldings(quantity, price, baseAsset, quoteAsset, side, userId);
 
         // call for order book
+        const { fills, executedQuantity }: OrderExecuted = this.markets.get(market)?.addOrder({
+            quantity, price, side, userId, orderId: ++this.lastTradeId, filled: 0
+        }) ?? { executedQuantity: 0, fills: [] };
 
-        return {
-            quantityExecuted: 0,
-            fills: [],
-            orderId: 0
-        }
+        this._updateUserFundsOrHoldings(executedQuantity, fills, price, baseAsset, quoteAsset, side, userId);
+        // this._updateDbTrades();
+        // this._updateWsTicker();
+
+        return { fills, executedQuantity, orderId: this.lastTradeId };
     }
 
     _checkSufficientFundsOrHoldings(quantity: number, price: number, baseAsset: string, quoteAsset: string, side: "buy" | "sell", userId: string): void {
+        // if buy check funds
+        // if sell check locked holdings
         const user = this.users.get(userId);
         if (!user) {
             throw new Error("User not found");
@@ -68,10 +75,47 @@ export class Engine {
             if ((user.balance.get(quoteAsset) ?? 0) < amount) {
                 throw new Error("Insufficient balance to buy !!");
             }
+            user.balance.set(quoteAsset, (user.balance.get(quoteAsset) ?? 0) - amount);
+            user.lockedBalance.set(quoteAsset, (user.lockedBalance.get(quoteAsset) ?? 0) + amount);
         } else {
-            if ((user.lockedHolding.get(baseAsset) ?? 0) < quantity) {
+            if ((user.holdings.get(baseAsset) ?? 0) < quantity) {
                 throw new Error("Insufficient funds to sell !!")
             }
+            user.holdings.set(baseAsset, (user.holdings.get(baseAsset) ?? 0) - quantity);
+            user.lockedHolding.set(baseAsset, (user.lockedHolding.get(baseAsset) ?? 0) + quantity);
+        }
+    }
+
+    _updateUserFundsOrHoldings(executedQuantity: number, fills: Fill[], price: number, baseAsset: string, quoteAsset: string, side: "buy" | "sell", userId: string): void {
+        /**
+         * TODO:
+         * - Add durability to this function, like implement all-or-nothing same as commit and rollover in MySQL
+         */
+        const user = this.users.get(userId);
+        if (!user) {
+            throw new Error("User not found");
+        }
+        if (side == "buy") {
+            const amount = executedQuantity * price;
+            fills.forEach(fill => {
+                const fillOwner = this.users.get(fill.fillOwnerId);
+                if (fillOwner) {
+                    fillOwner.lockedHolding.set(baseAsset, (fillOwner.lockedHolding.get(baseAsset) ?? 0) - fill.quantity);
+                    fillOwner.balance.set(quoteAsset, (fillOwner.balance.get(quoteAsset) ?? 0) + (fill.price * fill.quantity));
+                }
+                // TODO [IMP]: replace fillOwner with try catch and do something when some err occurs in any case like user not found, quoteAsset key is not there and store that fill separately in a list to handle it 
+            })
+            user.lockedBalance.set(quoteAsset, (user.lockedBalance.get(quoteAsset) ?? 0) - amount);
+            user.holdings.set(baseAsset, user.holdings.get(baseAsset)! + executedQuantity);
+        } else {
+            fills.forEach(fill => {
+                const fillOwner = this.users.get(fill.fillOwnerId);
+                if (fillOwner) {
+                    fillOwner.holdings.set(baseAsset, fillOwner.holdings.get(baseAsset)! + fill.quantity);
+                    fillOwner.lockedBalance.set(quoteAsset, fillOwner.lockedBalance.get(quoteAsset)! - (fill.quantity * fill.price));
+                }
+            });
+            user.lockedHolding.set(baseAsset, user.lockedHolding.get(baseAsset)! - executedQuantity)
         }
     }
 }
