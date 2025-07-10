@@ -15,7 +15,7 @@ export interface Fill {
     marketOrderId: number;
 }
 
-interface OrderExecuted {
+export interface OrderExecuted {
     executedQuantity: number;
     fills: Fill[];
 }
