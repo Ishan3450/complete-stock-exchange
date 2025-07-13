@@ -1,4 +1,5 @@
 import { Fill, OrderBook, OrderExecuted } from "./OrderBook";
+import { RedisManager } from "./RedisManager";
 import { MessageFromApiServer } from "./types/fromApi";
 // import { MessageToApiServer } from "./types/toApi";
 
@@ -32,11 +33,38 @@ export class Engine {
     process({ clientId, message }: { clientId: string, message: MessageFromApiServer }): void {
         switch (message.type) {
             case "CREATE_ORDER":
-                const { quantity, price, market, side, userId } = message.data;
-                // const {quantityExecuted, fills, orderId} = this._createOrder(quantity, price, market, side, userId);
+                try {
+                    const { quantity, price, market, side, userId } = message.data;
+                    const { executedQuantity, fills, orderId } = this._createOrder(quantity, price, market, side, userId);
+                    RedisManager.getInstance().sendToApiServer(clientId, {
+                        type: "ORDER_PLACED",
+                        data: { executedQuantity, fills, orderId }
+                    });
+                } catch (error) {
+                    console.log(error);
+                    RedisManager.getInstance().sendToApiServer(clientId, {
+                        type: "ORDER_CANCELLED",
+                        data: {
+                            executedQuantity: 0,
+                            fills: [],
+                            orderId: 0,
+                        }
+                    });
+                }
                 break;
             case "CANCEL_ORDER":
-                break;
+                try {
+                    const { orderId, market, userId, side } = message.data;
+                    const res = this.markets.get(market)?.cancelOrder(orderId, side);
+
+                    if(!res) {
+                        throw new Error("Manualy ERR: No result from cancel order !!");
+                    }
+                    
+                } catch (error) {
+                    console.log(error);
+                }
+
             case "GET_DEPTH":
                 break;
             default:
@@ -57,15 +85,14 @@ export class Engine {
         }) ?? { executedQuantity: 0, fills: [] };
 
         this._updateUserFundsOrHoldings(executedQuantity, fills, price, baseAsset, quoteAsset, side, userId);
-        // this._updateDbTrades();
+        // this._updateDbOrders(); // update order and fills matched with that order
+        // this._addDbTrades(); // add all the fills/trades happened during matching
         // this._updateWsTicker();
 
         return { fills, executedQuantity, orderId: this.lastTradeId };
     }
 
     _checkSufficientFundsOrHoldings(quantity: number, price: number, baseAsset: string, quoteAsset: string, side: "buy" | "sell", userId: string): void {
-        // if buy check funds
-        // if sell check locked holdings
         const user = this.users.get(userId);
         if (!user) {
             throw new Error("User not found");
@@ -85,7 +112,6 @@ export class Engine {
             user.lockedHolding.set(baseAsset, (user.lockedHolding.get(baseAsset) ?? 0) + quantity);
         }
     }
-
     _updateUserFundsOrHoldings(executedQuantity: number, fills: Fill[], price: number, baseAsset: string, quoteAsset: string, side: "buy" | "sell", userId: string): void {
         /**
          * TODO:

@@ -12,7 +12,7 @@ export type MessageFromApiServer = {
 } | {
     type: "CANCEL_ORDER",
     data: {
-        orderId: string,
+        orderId: number,
         market: string,
         userId: string,
         side: "buy" | "sell"
