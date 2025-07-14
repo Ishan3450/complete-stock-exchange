@@ -1,5 +1,6 @@
 import { createClient, RedisClientType } from "redis";
 import { MessageToApiServer } from "./types/toApi";
+import { MessageToWsServer } from "./types/toWs";
 
 export class RedisManager {
   private static instance: RedisManager;
@@ -17,7 +18,7 @@ export class RedisManager {
     return this.instance;
   }
 
-  public sendToApiServer(clientId: string, message: MessageToApiServer) {
-    this.client.publish(clientId, JSON.stringify(message));
+  public publicMessageToQueue(channel: string, message: MessageToApiServer | MessageToWsServer) {
+    this.client.publish(channel, JSON.stringify(message));
   }
 }

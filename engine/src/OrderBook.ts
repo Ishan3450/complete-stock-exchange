@@ -1,4 +1,4 @@
-interface Order {
+export interface Order {
     price: number;
     quantity: number;
     side: "buy" | "sell";
@@ -189,7 +189,7 @@ export class OrderBook {
      * This means there are 2 bids at price 100, 1 bid at price 99,
      * 3 asks at price 101, and 1 ask at price 102.
      */
-    getDepth(): { bids: {}, asks: {} } {
+    getDepth(): { bids: Record<number, number>, asks: Record<number, number> } {
         this.bids = this.bids.sort((a, b) => b.price - a.price);
         this.asks = this.asks.sort((a, b) => a.price - b.price);
 

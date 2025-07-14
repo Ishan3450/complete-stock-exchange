@@ -1,4 +1,4 @@
-import { Fill, OrderBook, OrderExecuted } from "./OrderBook";
+import { Fill, Order, OrderBook, OrderExecuted } from "./OrderBook";
 import { RedisManager } from "./RedisManager";
 import { MessageFromApiServer } from "./types/fromApi";
 // import { MessageToApiServer } from "./types/toApi";
@@ -36,13 +36,13 @@ export class Engine {
                 try {
                     const { quantity, price, market, side, userId } = message.data;
                     const { executedQuantity, fills, orderId } = this._createOrder(quantity, price, market, side, userId);
-                    RedisManager.getInstance().sendToApiServer(clientId, {
+                    RedisManager.getInstance().publicMessageToQueue(clientId, {
                         type: "ORDER_PLACED",
                         data: { executedQuantity, fills, orderId }
                     });
                 } catch (error) {
                     console.log(error);
-                    RedisManager.getInstance().sendToApiServer(clientId, {
+                    RedisManager.getInstance().publicMessageToQueue(clientId, {
                         type: "ORDER_CANCELLED",
                         data: {
                             executedQuantity: 0,
@@ -55,16 +55,27 @@ export class Engine {
             case "CANCEL_ORDER":
                 try {
                     const { orderId, market, userId, side } = message.data;
-                    const res = this.markets.get(market)?.cancelOrder(orderId, side);
+                    let order = this.markets.get(market)?.cancelOrder(orderId, side);
 
-                    if(!res) {
-                        throw new Error("Manualy ERR: No result from cancel order !!");
+                    if (order === false) {
+                        throw new Error("Manual ERR: No result from cancel order !!");
                     }
-                    
+                    order = order as Order;
+                    const user = this.users.get(userId);
+                    const [baseAsset, quoteAsset] = market.split("_");
+
+                    if (side === "buy") {
+                        const amount = order.price * (order.quantity - order.filled);
+                        user?.lockedBalance.set(quoteAsset, user.lockedBalance.get(quoteAsset)! - amount);
+                        user?.balance.set(quoteAsset, user.balance.get(quoteAsset)! + amount);
+                    } else {
+                        user?.lockedHolding.set(baseAsset, user.lockedHolding.get(baseAsset)! - order.quantity);
+                        user?.holdings.set(baseAsset, user.holdings.get(baseAsset)! + order.quantity);
+                    }
+                    this._updateDepthAndSend(order.price, market, side);
                 } catch (error) {
                     console.log(error);
                 }
-
             case "GET_DEPTH":
                 break;
             default:
@@ -143,5 +154,34 @@ export class Engine {
             });
             user.lockedHolding.set(baseAsset, user.lockedHolding.get(baseAsset)! - executedQuantity)
         }
+    }
+
+    _updateDepthAndSend(price: number, market: string, side: "buy" | "sell") {
+        const orderBook = this.markets.get(market);
+        if (!orderBook) return;
+
+        const depth = orderBook.getDepth();
+        let updatedBids: Record<number, number> = [];
+        let updatedAsks: Record<number, number> = [];
+
+        if (side === "buy") {
+            updatedBids = Object.fromEntries(
+                // REMEMBER: in object keys gets converted to string even if it is declared as number
+                Object.entries(depth.bids).filter(([bidPrice, qty]) => Number(bidPrice) != price)
+            );
+        } else {
+            updatedAsks = Object.fromEntries(
+                Object.entries(depth.asks).filter(([askPrice, qty]) => Number(askPrice) != price)
+            );
+        }
+
+        RedisManager.getInstance().publicMessageToQueue(`ws_depth@${market}`, {
+            stream: `depth@${market}`,
+            data: {
+                type: "depth",
+                asks: updatedAsks,
+                bids: updatedBids
+            }
+        });
     }
 }
