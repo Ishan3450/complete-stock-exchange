@@ -1,30 +1,25 @@
-import { CANCEL_ORDER, CREATE_ORDER, GET_DEPTH, GET_OPEN_ORDERS } from ".";
+// * Same file as engine/src/types/fromApi.ts
 
 export type MessageToEngine = {
-    type: typeof CREATE_ORDER,
+    type: "ENGINE_CREATE_ORDER",
     data: {
         market: string,
         price: number,
         quantity: number,
-        side: "BUY" | "SELL",
+        side: "buy" | "sell",
         userId: string,
     }
 } | {
-    type: typeof CANCEL_ORDER,
+    type: "ENGINE_CANCEL_ORDER",
     data: {
-        orderId: string,
+        orderId: number,
         market: string,
         userId: string,
+        side: "buy" | "sell"
     }
 } | {
-    type: typeof GET_DEPTH,
+    type: "ENGINE_GET_DEPTH",
     data: {
-        market: string,
-    }
-} | {
-    type: typeof GET_OPEN_ORDERS,
-    data: {
-        userId: string,
         market: string,
     }
 }

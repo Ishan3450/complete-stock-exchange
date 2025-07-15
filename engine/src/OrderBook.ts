@@ -1,3 +1,6 @@
+// Order, Fill -> Used in file db/src/types/fromEngine.ts
+// Fill used in file api/src/types/fromEngine.ts
+
 export interface Order {
     price: number;
     quantity: number;
@@ -35,10 +38,10 @@ export class OrderBook {
         this.lastTradeId = 0;
         this.bids = this.asks = [];
 
-        this.addDemoData();
+        this._addDemoData();
     }
 
-    addDemoData() {
+    _addDemoData() {
         this.bids = [
             { price: 99, quantity: 1.5, side: "buy", userId: "user1", orderId: 1, filled: 0, },
             { price: 98, quantity: 3, side: "buy", userId: "user2", orderId: 2, filled: 0, },

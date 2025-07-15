@@ -1,7 +1,7 @@
 // * Same file as api/src/types/toEngine.ts
 
 export type MessageFromApiServer = {
-    type: "CREATE_ORDER",
+    type: "ENGINE_CREATE_ORDER",
     data: {
         market: string,
         price: number,
@@ -10,16 +10,23 @@ export type MessageFromApiServer = {
         userId: string,
     }
 } | {
-    type: "CANCEL_ORDER",
+    type: "ENGINE_CANCEL_ORDER",
     data: {
         orderId: number,
         market: string,
         userId: string,
-        side: "buy" | "sell"
+        side: "buy" | "sell",
     }
 } | {
-    type: "GET_DEPTH",
+    type: "ENGINE_GET_DEPTH",
     data: {
         market: string,
     }
-}
+} | {
+    type: "ENGINE_CREATE_USER",
+    data: {
+        userId: string,
+        userName: string,
+        userPassword: string,
+    }
+};
