@@ -70,7 +70,7 @@ export class Engine {
                         data: { executedQuantity, fills, orderId }
                     });
                 } catch (error) {
-                    console.log(error);
+                    console.error(error);
                     RedisManager.getInstance().publishMessageToQueue(clientId, {
                         type: "API_ORDER_CANCELLED",
                         data: {
@@ -93,6 +93,10 @@ export class Engine {
                     const user = this.users.get(userId);
                     const [baseAsset, quoteAsset] = market.split("_");
 
+                    if (!baseAsset || !quoteAsset) {
+                        throw new Error(`Invalid market ${market}`)
+                    }
+
                     if (side === "buy") {
                         const amount = order.price * (order.quantity - order.filled);
                         user?.lockedBalance.set(quoteAsset, user.lockedBalance.get(quoteAsset)! - amount);
@@ -103,7 +107,7 @@ export class Engine {
                     }
                     this._wsUpdateDepthAndSend(market);
                 } catch (error) {
-                    console.log(error);
+                    console.error(error);
                 }
                 break;
             case "ENGINE_GET_DEPTH":
@@ -117,7 +121,7 @@ export class Engine {
                         data: depth
                     })
                 } catch (error) {
-                    console.log(error);
+                    console.error(error);
                     RedisManager.getInstance().publishMessageToQueue(clientId, {
                         type: "API_DEPTH",
                         data: { bids: {}, asks: {} }
@@ -145,7 +149,7 @@ export class Engine {
                         }
                     })
                 } catch (error) {
-                    console.log(error);
+                    console.error(error);
                     RedisManager.getInstance().publishMessageToQueue(clientId, {
                         type: "API_USER_CREATED",
                         data: {
@@ -160,9 +164,11 @@ export class Engine {
     }
 
     _createOrder(quantity: number, price: number, market: string, side: "buy" | "sell", userId: string): { executedQuantity: number, fills: Fill[], orderId: number } {
-        const marketInfo = market.split("_");
-        const baseAsset = marketInfo[0];
-        const quoteAsset = marketInfo[1];
+        const [baseAsset, quoteAsset] = market.split("_");
+
+        if(!baseAsset || !quoteAsset) {
+            throw new Error(`Invalid market ${market}`)
+        }
 
         this._checkSufficientFundsOrHoldings(quantity, price, baseAsset, quoteAsset, side, userId);
 

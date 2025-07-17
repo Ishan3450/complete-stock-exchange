@@ -1,24 +1,4 @@
-// Order, Fill -> Used in file db/src/types/fromEngine.ts
-// Fill used in file api/src/types/fromEngine.ts
-
 import { Order, Fill } from "@repo/shared-types/src/index"
-
-// export interface Order {
-//     price: number;
-//     quantity: number;
-//     side: "buy" | "sell";
-//     userId: string;
-//     orderId: number;
-//     filled: number;
-// }
-
-// export interface Fill {
-//     price: number;
-//     quantity: number;
-//     fillOwnerId: string;
-//     tradeId: number;
-//     marketOrderId: number;
-// }
 
 export interface OrderExecuted {
     executedQuantity: number;
@@ -99,7 +79,7 @@ export class OrderBook {
 
         for (let i = 0; i < sortedAsks.length; i++) {
             const ask = sortedAsks[i];
-            if (ask.price <= order.price) {
+            if (ask && ask.price <= order.price) {
                 const quantityToBeExecuted = Math.min(remainingQuantityToFill, ask.quantity - ask.filled);
                 executedQuantity += quantityToBeExecuted;
                 remainingQuantityToFill -= quantityToBeExecuted;
@@ -133,19 +113,20 @@ export class OrderBook {
         // TODO: instead of sorting everytime, try using HEAP structure
         const sortedBids: Order[] = this.bids.sort((a, b) => b.price - a.price);
         for (let i = 0; i < sortedBids.length; i++) {
-            if (sortedBids[i].price >= order.price) {
+            const bid = sortedBids[i];
+            if (bid && bid.price >= order.price) {
                 // we are good to process this as fill
-                const quantityToBeExecuted = Math.min(remainingQuantityToFill, sortedBids[i].quantity - sortedBids[i].filled);
+                const quantityToBeExecuted = Math.min(remainingQuantityToFill, bid.quantity - bid.filled);
                 executedQuantity += quantityToBeExecuted;
                 remainingQuantityToFill -= quantityToBeExecuted;
-                sortedBids[i].filled += quantityToBeExecuted;
+                bid.filled += quantityToBeExecuted;
 
                 executedFills.push({
-                    price: sortedBids[i].price,
+                    price: bid.price,
                     quantity: quantityToBeExecuted,
-                    fillOwnerId: sortedBids[i].userId,
+                    fillOwnerId: bid.userId,
                     tradeId: ++this.lastTradeId,
-                    marketOrderId: sortedBids[i].orderId
+                    marketOrderId: bid.orderId
                 });
 
                 if (remainingQuantityToFill == 0) break;
@@ -164,14 +145,14 @@ export class OrderBook {
             case "buy": {
                 const index = this.bids.findIndex(bid => bid.orderId == orderId);
                 if (index !== -1) {
-                    return this.bids.splice(index, 1)[0];
+                    return this.bids.splice(index, 1)[0] ?? false;
                 }
                 break;
             }
             case "sell": {
                 const index = this.asks.findIndex(ask => ask.orderId == orderId);
                 if (index !== -1) {
-                    return this.asks.splice(index, 1)[0];
+                    return this.asks.splice(index, 1)[0] ?? false;
                 }
                 break;
             }
