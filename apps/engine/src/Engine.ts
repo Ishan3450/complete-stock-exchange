@@ -31,7 +31,7 @@ export class Engine {
         this._addDemoData();
     }
 
-    _addDemoData() {
+    private _addDemoData() {
         const demoMarket = "TATA_INR";
         this.markets.set(demoMarket, new OrderBook("TATA", "INR"));
 
@@ -59,7 +59,7 @@ export class Engine {
         this.users.set(userB.userId, userB);
     }
 
-    process({ clientId, message }: { clientId: string, message: EngineApiMessageType }): void {
+    public process({ clientId, message }: { clientId: string, message: EngineApiMessageType }): void {
         switch (message.type) {
             case "ENGINE_CREATE_ORDER":
                 try {
@@ -163,7 +163,7 @@ export class Engine {
         }
     }
 
-    _createOrder(quantity: number, price: number, market: string, side: "buy" | "sell", userId: string): { executedQuantity: number, fills: Fill[], orderId: number } {
+    private _createOrder(quantity: number, price: number, market: string, side: "buy" | "sell", userId: string): { executedQuantity: number, fills: Fill[], orderId: number } {
         const [baseAsset, quoteAsset] = market.split("_");
 
         if (!baseAsset || !quoteAsset) {
@@ -185,7 +185,7 @@ export class Engine {
         return { fills, executedQuantity, orderId: this.lastTradeId };
     }
 
-    _checkSufficientFundsOrHoldings(quantity: number, price: number, baseAsset: string, quoteAsset: string, side: "buy" | "sell", userId: string): void {
+    private _checkSufficientFundsOrHoldings(quantity: number, price: number, baseAsset: string, quoteAsset: string, side: "buy" | "sell", userId: string): void {
         const user = this.users.get(userId);
         if (!user) {
             throw new Error("User not found");
@@ -205,7 +205,7 @@ export class Engine {
             user.lockedHolding.set(baseAsset, (user.lockedHolding.get(baseAsset) ?? 0) + quantity);
         }
     }
-    _updateUserFundsOrHoldings(executedQuantity: number, fills: Fill[], price: number, baseAsset: string, quoteAsset: string, side: "buy" | "sell", userId: string): void {
+    private _updateUserFundsOrHoldings(executedQuantity: number, fills: Fill[], price: number, baseAsset: string, quoteAsset: string, side: "buy" | "sell", userId: string): void {
         /**
          * TODO:
          * - Add durability to this function, like implement all-or-nothing same as commit and rollover in MySQL
@@ -238,7 +238,7 @@ export class Engine {
         }
     }
 
-    _updateDbOrders(newOrder: Order, fills: Fill[]): void {
+    private _updateDbOrders(newOrder: Order, fills: Fill[]): void {
         // TODO: to check here is the newOrder.filled is correctly updated or not (TO check pass by ref worked as expected or not)
         RedisManager.getInstance().publishMessageToQueue(
             "db_processor",
@@ -261,7 +261,7 @@ export class Engine {
             }
         )
     }
-    _addDbTrades(fills: Fill[], marketName: string): void {
+    private _addDbTrades(fills: Fill[], marketName: string): void {
         RedisManager.getInstance().publishMessageToQueue(
             "db_processor",
             {
@@ -273,7 +273,7 @@ export class Engine {
             }
         )
     }
-    _wsUpdateDepthAndSend(market: string): void {
+    private _wsUpdateDepthAndSend(market: string): void {
         const orderBook = this.markets.get(market);
         if (!orderBook) return;
 

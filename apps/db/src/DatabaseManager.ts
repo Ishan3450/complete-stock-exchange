@@ -29,7 +29,7 @@ export class DatabaseManager {
     async _addDemoData() {
     }
 
-    process(message: EngineDatabaseMessageType) {
+    public process(message: EngineDatabaseMessageType) {
         switch (message.type) {
             case "DB_ADD_TRADES":
                 const { trades, marketName } = message.data;
@@ -44,13 +44,13 @@ export class DatabaseManager {
         }
     }
 
-    async _addTrade(trades: { timestamp: string, price: number, quantity: number }, marketName: string): Promise<void> {
+    private async _addTrade(trades: { timestamp: string, price: number, quantity: number }, marketName: string): Promise<void> {
         await this._createTableIfNotExists(marketName);
         const insertQuery = `INSERT INTO ${marketName} (price, timestamp, quantity) VALUES($1, $2, $3)`;
         await this.pgClient.query(insertQuery, [trades.price, trades.timestamp, trades.quantity]);
     }
 
-    async _createTableIfNotExists(tableName: string): Promise<void> {
+    private async _createTableIfNotExists(tableName: string): Promise<void> {
         const query = `
             CREATE TABLE IF NOT EXISTS ${tableName} (
                 price           NUMERIC(10,2)   NOT NULL,
@@ -62,14 +62,14 @@ export class DatabaseManager {
         await this._initializeMaterializedViews(tableName);
     }
 
-    async _initializeMaterializedViews(tableName: string): Promise<void> {
+    private async _initializeMaterializedViews(tableName: string): Promise<void> {
         const buckets = ['minute', 'hour', 'day', 'week', 'month', 'year'];
         buckets.forEach(async (bucket) => {
             await this._createMaterializedViewOHLCV(tableName, bucket);
         });
     }
 
-    async _createMaterializedViewOHLCV(tableName: string, bucketType: string) {
+    private async _createMaterializedViewOHLCV(tableName: string, bucketType: string) {
         const viewName = `${tableName}_${bucketType}`;
         this.ohlcvViews.add(viewName);
 
@@ -89,7 +89,7 @@ export class DatabaseManager {
         await this.pgClient.query(sql);
     }
 
-    async _refreshOhlcvViews() {
+    private async _refreshOhlcvViews() {
         this.ohlcvViews.forEach(async (view) => {
             await this.pgClient.query(`REFRESH MATERIALIZED VIEW ${view}`);
         })

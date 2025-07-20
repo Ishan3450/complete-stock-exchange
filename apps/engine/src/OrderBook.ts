@@ -23,7 +23,7 @@ export class OrderBook {
         this._addDemoData();
     }
 
-    _addDemoData() {
+    private _addDemoData() {
         this.bids = [
             { price: 99, quantity: 1.5, side: "buy", userId: "user1", orderId: 1, filled: 0, },
             { price: 98, quantity: 3, side: "buy", userId: "user2", orderId: 2, filled: 0, },
@@ -40,9 +40,9 @@ export class OrderBook {
     }
 
 
-    addOrder(order: Order): OrderExecuted {
+    public addOrder(order: Order): OrderExecuted {
         if (order.side == "buy") {
-            const { executedQuantity, fills } = this.matchBid(order);
+            const { executedQuantity, fills } = this._matchBid(order);
             order.filled += executedQuantity;
             if (executedQuantity == order.quantity) {
                 return {
@@ -56,7 +56,7 @@ export class OrderBook {
                 fills
             }
         } else {
-            const { executedQuantity, fills } = this.matchAsk(order);
+            const { executedQuantity, fills } = this._matchAsk(order);
             order.filled += executedQuantity;
             if (executedQuantity == order.quantity) {
                 return {
@@ -68,7 +68,7 @@ export class OrderBook {
         }
     }
 
-    matchBid(order: Order): OrderExecuted {
+    private _matchBid(order: Order): OrderExecuted {
         // If buy order comes → check lowest sell price first.
         const executedFills: Fill[] = [];
         let executedQuantity = 0;
@@ -104,7 +104,7 @@ export class OrderBook {
         }
     }
 
-    matchAsk(order: Order): OrderExecuted {
+    private _matchAsk(order: Order): OrderExecuted {
         // If sell order comes → check highest buy price first.
         const executedFills: Fill[] = [];
         let executedQuantity = 0;
@@ -140,7 +140,7 @@ export class OrderBook {
         }
     }
 
-    cancelOrder(orderId: number, side: "buy" | "sell"): Order | boolean {
+    public cancelOrder(orderId: number, side: "buy" | "sell"): Order | boolean {
         switch (side) {
             case "buy": {
                 const index = this.bids.findIndex(bid => bid.orderId == orderId);
@@ -175,7 +175,7 @@ export class OrderBook {
      * This means there are 2 bids at price 100, 1 bid at price 99,
      * 3 asks at price 101, and 1 ask at price 102.
      */
-    getDepth(): { bids: Record<number, number>, asks: Record<number, number> } {
+    public getDepth(): { bids: Record<number, number>, asks: Record<number, number> } {
         this.bids = this.bids.sort((a, b) => b.price - a.price);
         this.asks = this.asks.sort((a, b) => a.price - b.price);
 
@@ -188,7 +188,7 @@ export class OrderBook {
         return aggregatedDepth;
     }
 
-    getUserOpenOrders(userId: string): { bids: Order[], asks: Order[] } {
+    public getUserOpenOrders(userId: string): { bids: Order[], asks: Order[] } {
         return {
             bids: this.bids.filter(bid => bid.userId == userId),
             asks: this.asks.filter(ask => ask.userId == userId),
