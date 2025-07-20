@@ -166,7 +166,7 @@ export class Engine {
     _createOrder(quantity: number, price: number, market: string, side: "buy" | "sell", userId: string): { executedQuantity: number, fills: Fill[], orderId: number } {
         const [baseAsset, quoteAsset] = market.split("_");
 
-        if(!baseAsset || !quoteAsset) {
+        if (!baseAsset || !quoteAsset) {
             throw new Error(`Invalid market ${market}`)
         }
 
@@ -178,7 +178,7 @@ export class Engine {
 
         this._updateUserFundsOrHoldings(executedQuantity, fills, price, baseAsset, quoteAsset, side, userId);
         this._updateDbOrders(newOrder, fills); // update order and fills matched with that order
-        this._addDbTrades(fills); // add all the fills/trades happened during matching
+        this._addDbTrades(fills, market); // add all the fills/trades happened during matching
         this._wsUpdateDepthAndSend(market);
         // this._updateWsTicker();
 
@@ -261,12 +261,15 @@ export class Engine {
             }
         )
     }
-    _addDbTrades(fills: Fill[]): void {
+    _addDbTrades(fills: Fill[], marketName: string): void {
         RedisManager.getInstance().publishMessageToQueue(
             "db_processor",
             {
                 type: "DB_ADD_TRADES",
-                data: { trades: fills }
+                data: {
+                    trades: fills.map(fill => ({ timestamp: new Date().toISOString(), price: fill.price, quantity: fill.quantity })),
+                    marketName,
+                }
             }
         )
     }

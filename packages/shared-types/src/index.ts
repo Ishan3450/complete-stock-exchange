@@ -97,7 +97,8 @@ export type EngineDatabaseMessageType = {
 } | {
     type: "DB_ADD_TRADES",
     data: {
-        trades: Fill[]
+        trades: { timestamp: string, price: number, quantity: number }[],
+        marketName: string,
     }
 };
 
