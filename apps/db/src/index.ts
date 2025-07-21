@@ -1,5 +1,5 @@
 import { createClient } from "redis";
-import { EngineDatabaseMessageType } from "@repo/shared-types/src/index";
+import { DatabaseEngineMessageType } from "@repo/shared-types/src/index";
 import { DatabaseManager } from "./DatabaseManager";
 
 
@@ -13,7 +13,7 @@ async function main() {
         const message = await redisClient.brPop("db_processor", 0);
 
         if (message) {
-            const parsedMessage: EngineDatabaseMessageType = JSON.parse(message.element);
+            const parsedMessage: DatabaseEngineMessageType = JSON.parse(message.element);
             dbManager.process(parsedMessage);
         }
     }

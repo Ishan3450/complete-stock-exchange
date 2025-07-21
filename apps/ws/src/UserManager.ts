@@ -4,9 +4,9 @@ import WebSocket from 'ws';
 import { v4 as uuid } from "uuid";
 
 export class UserManager {
-    static instance: UserManager;
-    redisClient: RedisClientType;
-    users: Map<string, User>; // userId -> User class object
+    private static instance: UserManager;
+    private redisClient: RedisClientType;
+    private users: Map<string, User>; // userId -> User class object
 
     private constructor() {
         this.redisClient = createClient();

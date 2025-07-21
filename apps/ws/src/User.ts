@@ -1,8 +1,9 @@
+import { FrontendWebsocketMessageType } from "@repo/shared-types/src";
 import { WebSocket } from "ws";
 
 export class User {
     userId: string;
-    ws: WebSocket;
+    private ws: WebSocket;
 
     public constructor(userId: string, ws: WebSocket) {
         this.userId = userId;
@@ -25,8 +26,7 @@ export class User {
 
     }
 
-    // public emit(message: Type Remaining) {
-    //     this.ws.emit(JSON.stringify(message));
-    // }
-
+    public emit(message: FrontendWebsocketMessageType): void {
+        this.ws.emit(JSON.stringify(message));
+    }
 }

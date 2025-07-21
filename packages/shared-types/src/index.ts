@@ -84,7 +84,7 @@ export type ApiEngineMessageType = {
 /**
  * Type: From Engine to DB
  */
-export type EngineDatabaseMessageType = {
+export type DatabaseEngineMessageType = {
     type: "DB_ORDER_UPDATE",
     data: {
         order: Order
@@ -105,11 +105,43 @@ export type EngineDatabaseMessageType = {
 /**
  * Type: From Engine to WS
  */
-export type EngineWebsocketMessageType = {
-    stream: string,
+export type WebsocketEngineMessageType = {
+    type: "DEPTH",
     data: {
-        type: "depth",
+        market: string,
         bids: Record<number, number>,
         asks: Record<number, number>,
+    }
+} | {
+    type: "TICKER_UPDATE",
+    data: {
+        market: string,
+        open: number,
+        high: number,
+        low: number,
+        close: number,
+        volume: number,
+    }
+};
+
+/**
+ * Type: From WS to Frontend
+ */
+export type FrontendWebsocketMessageType = WebsocketEngineMessageType;
+
+/**
+ * Type: From Frontend to WS
+ */
+export type WebsocketFrontendMessageType = {
+    type: "SUBSCRIBE",
+    data: {
+        subscriptionName: string,
+        userId: string
+    }
+} | {
+    type: "UNSUBSCRIBE",
+    data: {
+        subscriptionName: string,
+        userId: string
     }
 };

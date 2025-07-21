@@ -1,5 +1,5 @@
 import { createClient, RedisClientType } from "redis";
-import { ApiEngineMessageType, EngineDatabaseMessageType, EngineWebsocketMessageType } from "@repo/shared-types/src/index";
+import { ApiEngineMessageType, DatabaseEngineMessageType, WebsocketEngineMessageType } from "@repo/shared-types/src/index";
 
 export class RedisManager {
   private static instance: RedisManager;
@@ -17,7 +17,11 @@ export class RedisManager {
     return this.instance;
   }
 
-  public publishMessageToQueue(channel: string, message: ApiEngineMessageType | EngineWebsocketMessageType | EngineDatabaseMessageType) {
+  public publishMessage(channel: string, message: ApiEngineMessageType | WebsocketEngineMessageType) {
     this.client.publish(channel, JSON.stringify(message));
+  }
+
+  public pushMessageToQueue(channel: string, message: DatabaseEngineMessageType) {
+    this.client.lPush(channel, JSON.stringify(message));
   }
 }

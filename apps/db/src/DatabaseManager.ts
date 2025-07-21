@@ -1,13 +1,13 @@
 import { RedisClientType } from "@redis/client";
-import { EngineDatabaseMessageType } from "@repo/shared-types/src";
+import { DatabaseEngineMessageType } from "@repo/shared-types/src";
 import { Client } from "pg";
 import { createClient } from "redis";
 
 
 export class DatabaseManager {
-    pgClient: Client;
-    redisClient: RedisClientType;
-    ohlcvViews: Set<String>;
+    private pgClient: Client;
+    private redisClient: RedisClientType;
+    private ohlcvViews: Set<String>;
 
     constructor() {
         this.pgClient = new Client({
@@ -29,7 +29,7 @@ export class DatabaseManager {
     async _addDemoData() {
     }
 
-    public process(message: EngineDatabaseMessageType) {
+    public process(message: DatabaseEngineMessageType) {
         switch (message.type) {
             case "DB_ADD_TRADES":
                 const { trades, marketName } = message.data;

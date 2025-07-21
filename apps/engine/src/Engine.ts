@@ -13,9 +13,9 @@ interface User {
 }
 
 export class Engine {
-    markets: Map<string, OrderBook>; // base_quote -> orderbook
-    users: Map<string, User>; // userId -> info
-    lastTradeId: number;
+    private markets: Map<string, OrderBook>; // base_quote -> orderbook
+    private users: Map<string, User>; // userId -> info
+    private lastTradeId: number;
     // TODO: add trade type array containing globally happened trades for audit/log purpose
     // trades: Trade[];
 
@@ -65,13 +65,13 @@ export class Engine {
                 try {
                     const { quantity, price, market, side, userId } = message.data;
                     const { executedQuantity, fills, orderId } = this._createOrder(quantity, price, market, side, userId);
-                    RedisManager.getInstance().publishMessageToQueue(clientId, {
+                    RedisManager.getInstance().publishMessage(clientId, {
                         type: "API_ORDER_PLACED",
                         data: { executedQuantity, fills, orderId }
                     });
                 } catch (error) {
                     console.error(error);
-                    RedisManager.getInstance().publishMessageToQueue(clientId, {
+                    RedisManager.getInstance().publishMessage(clientId, {
                         type: "API_ORDER_CANCELLED",
                         data: {
                             executedQuantity: 0,
@@ -116,13 +116,13 @@ export class Engine {
                     if (!market) throw new Error(`No orderbook found named ${market} !!`);
                     const depth = market.getDepth();
 
-                    RedisManager.getInstance().publishMessageToQueue(clientId, {
+                    RedisManager.getInstance().publishMessage(clientId, {
                         type: "API_DEPTH",
                         data: depth
                     })
                 } catch (error) {
                     console.error(error);
-                    RedisManager.getInstance().publishMessageToQueue(clientId, {
+                    RedisManager.getInstance().publishMessage(clientId, {
                         type: "API_DEPTH",
                         data: { bids: {}, asks: {} }
                     })
@@ -142,7 +142,7 @@ export class Engine {
                         lockedHolding: new Map(),
                     });
 
-                    RedisManager.getInstance().publishMessageToQueue(clientId, {
+                    RedisManager.getInstance().publishMessage(clientId, {
                         type: "API_USER_CREATED",
                         data: {
                             status: true
@@ -150,7 +150,7 @@ export class Engine {
                     })
                 } catch (error) {
                     console.error(error);
-                    RedisManager.getInstance().publishMessageToQueue(clientId, {
+                    RedisManager.getInstance().publishMessage(clientId, {
                         type: "API_USER_CREATED",
                         data: {
                             status: false
@@ -240,7 +240,7 @@ export class Engine {
 
     private _updateDbOrders(newOrder: Order, fills: Fill[]): void {
         // TODO: to check here is the newOrder.filled is correctly updated or not (TO check pass by ref worked as expected or not)
-        RedisManager.getInstance().publishMessageToQueue(
+        RedisManager.getInstance().pushMessageToQueue(
             "db_processor",
             {
                 type: "DB_ORDER_UPDATE",
@@ -253,7 +253,7 @@ export class Engine {
         // TODO: check below call can be merged with the above order update call or not
         // what I means is to check for the need for the case when we just want to update fill/fills in any case
         // or fill/fills will be updated with order only if that then no separate call needed
-        RedisManager.getInstance().publishMessageToQueue(
+        RedisManager.getInstance().pushMessageToQueue(
             "db_processor",
             {
                 type: "DB_ORDER_UPDATE_FILL",
@@ -262,7 +262,7 @@ export class Engine {
         )
     }
     private _addDbTrades(fills: Fill[], marketName: string): void {
-        RedisManager.getInstance().publishMessageToQueue(
+        RedisManager.getInstance().pushMessageToQueue(
             "db_processor",
             {
                 type: "DB_ADD_TRADES",
@@ -278,12 +278,12 @@ export class Engine {
         if (!orderBook) return;
 
         const depth = orderBook.getDepth();
-        RedisManager.getInstance().publishMessageToQueue(`ws_depth@${market}`, {
-            stream: `depth@${market}`,
+        RedisManager.getInstance().publishMessage(`ws_depth@${market}`, {
+            type: "DEPTH",
             data: {
-                type: "depth",
+                market,
                 asks: depth.asks,
-                bids: depth.bids
+                bids: depth.bids,
             }
         });
     }
