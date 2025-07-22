@@ -133,13 +133,7 @@ export type FrontendWebsocketMessageType = WebsocketEngineMessageType;
  * Type: From Frontend to WS
  */
 export type WebsocketFrontendMessageType = {
-    type: "SUBSCRIBE",
-    data: {
-        subscriptionName: string,
-        userId: string
-    }
-} | {
-    type: "UNSUBSCRIBE",
+    type: "SUBSCRIBE" | "UNSUBSCRIBE",
     data: {
         subscriptionName: string,
         userId: string

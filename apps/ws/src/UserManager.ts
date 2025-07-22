@@ -26,4 +26,11 @@ export class UserManager {
         const user = new User(userId, ws);
         this.users.set(userId, user);
     }
+
+    public getUser(userId: string): User {
+        if (!this.users.has(userId)) {
+            throw new Error("No user found");
+        }
+        return this.users.get(userId)!;
+    }
 }
