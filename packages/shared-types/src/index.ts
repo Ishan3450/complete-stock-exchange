@@ -136,6 +136,5 @@ export type WebsocketFrontendMessageType = {
     type: "SUBSCRIBE" | "UNSUBSCRIBE",
     data: {
         subscriptionName: string,
-        userId: string
     }
 };

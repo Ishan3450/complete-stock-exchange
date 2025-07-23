@@ -21,7 +21,7 @@ export class UserManager {
         return this.instance;
     }
 
-    public addUser(ws: WebSocket) {
+    public addUser(ws: WebSocket): void {
         const userId: string = uuid();
         const user = new User(userId, ws);
         this.users.set(userId, user);
@@ -32,5 +32,9 @@ export class UserManager {
             throw new Error("No user found");
         }
         return this.users.get(userId)!;
+    }
+
+    public removeUser(userId: string): void {
+        this.users.delete(userId);
     }
 }

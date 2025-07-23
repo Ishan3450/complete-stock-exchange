@@ -1,4 +1,3 @@
-import { WebsocketFrontendMessageType } from '@repo/shared-types/src/index';
 import { createClient, RedisClientType } from 'redis';
 import { User } from './User';
 import { UserManager } from './UserManager';
@@ -8,11 +7,13 @@ export class SubscriptionManager {
     private static instance: SubscriptionManager;
     private redisClient: RedisClientType;
     private subscriptions: Map<string, Set<string>>; // channel -> list<userId>
+    private userSubscriptions: Map<string, Set<string>>; // userId > list<channel>
 
     private constructor() {
         this.redisClient = createClient();
         this.redisClient.connect();
         this.subscriptions = new Map();
+        this.userSubscriptions = new Map();
     }
 
     public static getInstance(): SubscriptionManager {
@@ -22,15 +23,33 @@ export class SubscriptionManager {
         return this.instance;
     }
 
-    public subscribe(message: WebsocketFrontendMessageType) {
-        const subscriptionName = message.data.subscriptionName;
+    public subscribe(subscriptionName: string, userId: string) {
         if (!this.subscriptions.has(subscriptionName)) {
             this.subscriptions.set(subscriptionName, new Set());
         }
-        this.subscriptions.get(subscriptionName)?.add(message.data.userId);
+        if (!this.userSubscriptions.has(userId)) {
+            this.userSubscriptions.set(userId, new Set());
+        }
+        this.subscriptions.get(subscriptionName)?.add(userId);
+        this.userSubscriptions.get(userId)?.add(subscriptionName);
 
         if (this.subscriptions.get(subscriptionName)?.size == 1) {
             this.redisClient.subscribe(subscriptionName, this._pubSubCallbackHandler)
+        }
+    }
+
+    public unsubscribe(subscriptionName: string, userId: string) {
+        const subscribers = this.subscriptions.get(subscriptionName);
+
+        if (subscribers) {
+            subscribers.delete(userId);
+            this.userSubscriptions.get(userId)?.delete(subscriptionName);
+
+            if (subscribers.size === 0) {
+                this.redisClient.unsubscribe(subscriptionName);
+                this.subscriptions.delete(subscriptionName);
+                this.userSubscriptions.delete(userId);
+            }
         }
     }
 
@@ -41,18 +60,10 @@ export class SubscriptionManager {
         })
     }
 
-    public unsubscribe(message: WebsocketFrontendMessageType) {
-        const subscriptionName = message.data.subscriptionName;
-        const userId = message.data.userId;
-        const subscribers = this.subscriptions.get(subscriptionName);
-
-        if (subscribers) {
-            subscribers.delete(userId);
-
-            if (subscribers.size === 0) {
-                this.redisClient.unsubscribe(subscriptionName);
-                this.subscriptions.delete(subscriptionName);
-            }
-        }
+    public userLeft(userId: string) {
+        this.userSubscriptions.get(userId)?.forEach(subscription => {
+            this.subscriptions.get(subscription)?.delete(userId);
+        })
+        this.userSubscriptions.delete(userId);
     }
 }
