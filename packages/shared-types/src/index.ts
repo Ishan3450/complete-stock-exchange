@@ -19,6 +19,11 @@ export interface Fill {
     marketOrderId: number;
 }
 
+export interface Error {
+    type: "Error",
+    errorMsg: string,
+}
+
 // ==================================================================
 
 

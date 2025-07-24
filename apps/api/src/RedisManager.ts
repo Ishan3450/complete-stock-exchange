@@ -21,7 +21,7 @@ export class RedisManager {
 		return this.instance;
 	}
 
-	public sendAndAwait(message: EngineApiMessageType) {
+	public sendAndAwait(message: EngineApiMessageType): Promise<ApiEngineMessageType> {
 		return new Promise<ApiEngineMessageType>((resolve, reject) => {
 			const id = uuid();
 			this.client.subscribe(id, (response) => {

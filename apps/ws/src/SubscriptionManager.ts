@@ -1,5 +1,4 @@
 import { createClient, RedisClientType } from 'redis';
-import { User } from './User';
 import { UserManager } from './UserManager';
 
 
