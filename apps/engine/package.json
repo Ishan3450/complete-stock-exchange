@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "dev": "tsc -b && node dist/index.js"
   },
   "keywords": [],
@@ -13,6 +13,7 @@
   "dependencies": {
     "@repo/typescript-config": "*",
     "@repo/shared-types": "*",
+    "@repo/jest-config": "*",
     "pg": "^8.16.3",
     "redis": "^5.5.6"
   },

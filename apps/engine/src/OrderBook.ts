@@ -6,12 +6,12 @@ export interface OrderExecuted {
 }
 
 export class OrderBook {
-    bids: Order[];
-    asks: Order[];
-    baseAsset: string;
-    quoteAsset: string;
-    marketName: string;
-    lastTradeId: number;
+    private bids: Order[];
+    private asks: Order[];
+    private baseAsset: string;
+    private quoteAsset: string;
+    private marketName: string;
+    private lastTradeId: number;
 
     constructor(baseAsset: string, quoteAsset: string) {
         this.baseAsset = baseAsset;
@@ -19,26 +19,7 @@ export class OrderBook {
         this.marketName = `${baseAsset}_${quoteAsset}`;
         this.lastTradeId = 0;
         this.bids = this.asks = [];
-
-        this._addDemoData();
     }
-
-    private _addDemoData() {
-        this.bids = [
-            { price: 99, quantity: 1.5, side: "buy", userId: "user1", orderId: 1, filled: 0, },
-            { price: 98, quantity: 3, side: "buy", userId: "user2", orderId: 2, filled: 0, },
-            { price: 97.5, quantity: 1.5, side: "buy", userId: "user3", orderId: 3, filled: 0, },
-            { price: 97.5, quantity: 1.5, side: "buy", userId: "user8", orderId: 8, filled: 0, },
-        ];
-
-        this.asks = [
-            { price: 100, quantity: 2, side: "sell", userId: "user4", orderId: 4, filled: 0, },
-            { price: 100, quantity: 2, side: "sell", userId: "user7", orderId: 7, filled: 0, },
-            { price: 101, quantity: 4, side: "sell", userId: "user5", orderId: 5, filled: 0, },
-            { price: 102.5, quantity: 1, side: "sell", userId: "user6", orderId: 6, filled: 0, },
-        ];
-    }
-
 
     public addOrder(order: Order): OrderExecuted {
         if (order.side == "buy") {
@@ -195,32 +176,3 @@ export class OrderBook {
         }
     }
 }
-
-function main() {
-    const orderbook: OrderBook = new OrderBook('TATA', 'INR');
-
-    // const { executedQuantity, fills }: OrderExecuted = orderbook.addOrder({
-    //     price: 101,
-    //     quantity: 5,
-    //     side: "buy",
-    //     userId: "test",
-    //     orderId: 1,
-    //     filled: 0,
-    // });
-    // const {executedQuantity, fills}: OrderExecuted = orderbook.addOrder({
-    //     price: 96,
-    //     quantity: 2,
-    //     side: "sell",
-    //     userId: "test",
-    //     orderId: 1,
-    //     filled: 0,
-    // });
-
-    // console.log(executedQuantity)
-    // console.log(fills)
-    // console.table(orderbook.bids);
-    // console.table(orderbook.asks);
-    console.log(orderbook.getDepth());
-
-}
-main();
