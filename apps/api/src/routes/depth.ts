@@ -5,7 +5,7 @@ import { ApiEngineMessageType } from "@repo/shared-types/src";
 export const depthRouter = Router();
 
 depthRouter.get("/get", async (req: Request, res: Response) => {
-    const market = typeof req.query.market === "string" ? req.query.market : undefined;
+    const market = req.query.market;
 
     if (!market) {
         return res.status(400).json({
@@ -17,7 +17,7 @@ depthRouter.get("/get", async (req: Request, res: Response) => {
     const response: ApiEngineMessageType = await RedisManager.getInstance().sendAndAwait({
         type: "ENGINE_GET_DEPTH",
         data: {
-            market
+            market: market as string
         }
     })
     res.status(200).json(response);
