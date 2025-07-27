@@ -4,7 +4,7 @@ import { Engine } from "./Engine";
 async function main() {
   const redisClient = createClient();
   await redisClient.connect();
-  const engine = new Engine();
+  const engine = Engine.getInstance();
 
   while (true) {
     const data = await redisClient.brPop("engineMessages", 0);

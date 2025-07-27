@@ -13,6 +13,7 @@ interface User {
 }
 
 export class Engine {
+    private static instance: Engine;
     private markets: Map<string, OrderBook>; // base_quote -> orderbook
     private users: Map<string, User>; // userId -> info
     private lastTradeId: number;
@@ -23,40 +24,17 @@ export class Engine {
      * TODO: add snapshot mechanism
      */
 
-    constructor() {
+    private constructor() {
         this.markets = new Map<string, OrderBook>();
         this.users = new Map<string, User>();
         this.lastTradeId = -1;
-
-        this._addDemoData();
     }
 
-    private _addDemoData() {
-        const demoMarket = "TATA_INR";
-        this.markets.set(demoMarket, new OrderBook("TATA", "INR"));
-
-        const userA: User = {
-            userId: "user1",
-            userName: "Alice",
-            userPassword: "password1",
-            balance: new Map([["INR", 10000]]),
-            lockedBalance: new Map([["INR", 0]]),
-            holdings: new Map([["TATA", 2]]),
-            lockedHolding: new Map([["TATA", 0]])
-        };
-
-        const userB: User = {
-            userId: "user7",
-            userName: "Bob",
-            userPassword: "password2",
-            balance: new Map([["INR", 5000]]),
-            lockedBalance: new Map([["INR", 0]]),
-            holdings: new Map([["TATA", 1]]),
-            lockedHolding: new Map([["TATA", 0]])
-        };
-
-        this.users.set(userA.userId, userA);
-        this.users.set(userB.userId, userB);
+    public static getInstance() {
+        if (!this.instance) {
+            this.instance = new Engine();
+        }
+        return this.instance;
     }
 
     public process({ clientId, message }: { clientId: string, message: EngineApiMessageType }): void {
