@@ -60,7 +60,7 @@ export class OrderBook {
 
         for (let i = 0; i < sortedAsks.length; i++) {
             const ask = sortedAsks[i];
-            if (ask && ask.price <= order.price) {
+            if (ask && ask.userId != order.userId && ask.price <= order.price) {
                 const quantityToBeExecuted = Math.min(remainingQuantityToFill, ask.quantity - ask.filled);
                 executedQuantity += quantityToBeExecuted;
                 remainingQuantityToFill -= quantityToBeExecuted;
@@ -95,7 +95,7 @@ export class OrderBook {
         const sortedBids: Order[] = this.bids.sort((a, b) => b.price - a.price);
         for (let i = 0; i < sortedBids.length; i++) {
             const bid = sortedBids[i];
-            if (bid && bid.price >= order.price) {
+            if (bid && bid.userId != order.userId && bid.price >= order.price) {
                 // we are good to process this as fill
                 const quantityToBeExecuted = Math.min(remainingQuantityToFill, bid.quantity - bid.filled);
                 executedQuantity += quantityToBeExecuted;
