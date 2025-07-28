@@ -1,21 +1,12 @@
 import { OrderBook, OrderExecuted } from "./OrderBook";
 import { RedisManager } from "./RedisManager";
-import { Fill, Order, EngineApiMessageType } from "@repo/shared-types/src";
+import { Fill, Order, EngineApiMessageType, UserInterface } from "@repo/shared-types/src";
 
-interface User {
-    userId: string;
-    userName: string;
-    userPassword: string;
-    balance: Map<string, number>; // currency -> amount
-    lockedBalance: Map<string, number>; // currency -> amount
-    holdings: Map<string, number>; // base_asset -> quantity
-    lockedHolding: Map<string, number>; // base_asset -> quantity
-}
 
 export class Engine {
     private static instance: Engine;
     private markets: Map<string, OrderBook>; // base_quote -> orderbook
-    private users: Map<string, User>; // userId -> info
+    private users: Map<string, UserInterface>; // userId -> info
     private lastTradeId: number;
     // TODO: add trade type array containing globally happened trades for audit/log purpose
     // trades: Trade[];
@@ -26,7 +17,7 @@ export class Engine {
 
     private constructor() {
         this.markets = new Map<string, OrderBook>();
-        this.users = new Map<string, User>();
+        this.users = new Map<string, UserInterface>();
         this.lastTradeId = -1;
     }
 
@@ -110,13 +101,29 @@ export class Engine {
                 try {
                     const { userId, userName, userPassword } = message.data;
 
+                    // this.users.set(userId, {
+                    //     userId,
+                    //     userName,
+                    //     userPassword,
+                    //     balance: new Map(),
+                    //     lockedBalance: new Map(),
+                    //     holdings: new Map(),
+                    //     lockedHolding: new Map(),
+                    // });
+
                     this.users.set(userId, {
                         userId,
                         userName,
                         userPassword,
-                        balance: new Map(),
+                        balance: new Map([
+                            ["INR", 1000],
+                            ["USD", 5.5],
+                        ]),
                         lockedBalance: new Map(),
-                        holdings: new Map(),
+                        holdings: new Map([
+                            ["TATA", 50],
+                            ["ETH", 2],
+                        ]),
                         lockedHolding: new Map(),
                     });
 
@@ -135,6 +142,43 @@ export class Engine {
                         }
                     })
                 }
+                break;
+            case "ENGINE_ADD_BALANCE":
+                try {
+                    const { userId, currency, amount } = message.data;
+                    const user = this.users.get(userId);
+                    if (!user) {
+                        RedisManager.getInstance().publishMessage(clientId, {
+                            type: "Error",
+                            errorMsg: "No user found !!"
+                        })
+                        return;
+                    }
+                    user.balance.set(currency, (user.balance.get(currency) ?? 0) + amount);
+                } catch (error) {
+                    console.log(error);
+                    RedisManager.getInstance().publishMessage(clientId, {
+                        type: "Error",
+                        errorMsg: "Something went wrong"
+                    })
+                }
+                break;
+            case "ENGINE_GET_USER_PORTFOLIO":
+                const { userId } = message.data;
+                const user = this.users.get(userId);
+                if (!user) {
+                    RedisManager.getInstance().publishMessage(clientId, {
+                        type: "Error",
+                        errorMsg: "No user found !!"
+                    })
+                    return;
+                }
+                RedisManager.getInstance().publishMessage(clientId, {
+                    type: "API_USER_PORTFOLIO",
+                    data: {
+                        user
+                    }
+                })
                 break;
             default:
                 break;

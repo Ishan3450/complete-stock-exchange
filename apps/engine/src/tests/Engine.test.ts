@@ -41,10 +41,10 @@ describe("Engine Tests", () => {
     })
 
     test("Test ENGINE_CREATE_ORDER", () => {
-        
+
     });
 
-    afterAll(async () => {
+    afterAll(() => {
         pub.destroy();
         sub.destroy();
     });

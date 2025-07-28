@@ -24,6 +24,17 @@ export interface Error {
     errorMsg: string,
 }
 
+export interface UserInterface {
+    userId: string;
+    userName: string;
+    userPassword: string;
+    balance: Map<string, number>; // currency -> amount
+    lockedBalance: Map<string, number>; // currency -> amount
+    holdings: Map<string, number>; // base_asset -> quantity
+    lockedHolding: Map<string, number>; // base_asset -> quantity
+}
+
+
 // ==================================================================
 
 
@@ -59,6 +70,18 @@ export type EngineApiMessageType = {
         userName: string,
         userPassword: string,
     }
+} | {
+    type: "ENGINE_ADD_BALANCE",
+    data: {
+        userId: string;
+        currency: string;
+        amount: number;
+    }
+} | {
+    type: "ENGINE_GET_USER_PORTFOLIO",
+    data: {
+        userId: string
+    }
 };
 
 
@@ -82,6 +105,11 @@ export type ApiEngineMessageType = {
     type: "API_USER_CREATED",
     data: {
         status: boolean
+    }
+} | {
+    type: "API_USER_PORTFOLIO",
+    data: {
+        user: UserInterface
     }
 };
 
