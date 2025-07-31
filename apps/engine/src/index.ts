@@ -10,7 +10,7 @@ async function main() {
     const data = await redisClient.brPop("engineMessages", 0);
 
     if (data) {
-      engine.process(JSON.parse(data.element));
+      await engine.process(JSON.parse(data.element));
     }
   }
 }

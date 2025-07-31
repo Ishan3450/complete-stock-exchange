@@ -17,8 +17,8 @@ export class RedisManager {
     return this.instance;
   }
 
-  public publishMessage(channel: string, message: ApiEngineMessageType | WebsocketEngineMessageType | Error) {
-    this.client.publish(channel, JSON.stringify(message));
+  public async publishMessage(channel: string, message: ApiEngineMessageType | WebsocketEngineMessageType | Error) {
+    await this.client.publish(channel, JSON.stringify(message));
   }
 
   public pushMessageToQueue(channel: string, message: DatabaseEngineMessageType) {

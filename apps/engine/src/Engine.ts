@@ -28,19 +28,19 @@ export class Engine {
         return this.instance;
     }
 
-    public process({ clientId, message }: { clientId: string, message: EngineApiMessageType }): void {
+    public async process({ clientId, message }: { clientId: string, message: EngineApiMessageType }) {
         switch (message.type) {
             case "ENGINE_CREATE_ORDER":
                 try {
                     const { quantity, price, market, side, userId } = message.data;
                     const { executedQuantity, fills, orderId } = this._createOrder(quantity, price, market, side, userId);
-                    RedisManager.getInstance().publishMessage(clientId, {
+                    await RedisManager.getInstance().publishMessage(clientId, {
                         type: "API_ORDER_PLACED",
                         data: { executedQuantity, fills, orderId }
                     });
                 } catch (error) {
                     console.error(error);
-                    RedisManager.getInstance().publishMessage(clientId, {
+                    await RedisManager.getInstance().publishMessage(clientId, {
                         type: "API_ORDER_CANCELLED",
                         data: {
                             executedQuantity: 0,
@@ -68,11 +68,19 @@ export class Engine {
 
                     if (side === "buy") {
                         const amount = order.price * (order.quantity - order.filled);
-                        user?.lockedBalance.set(quoteAsset, user.lockedBalance.get(quoteAsset)! - amount);
-                        user?.balance.set(quoteAsset, user.balance.get(quoteAsset)! + amount);
+                        const prevLocked = user?.lockedBalance[quoteAsset] ?? 0;
+                        const prevBalance = user?.balance[quoteAsset] ?? 0;
+                        if (user) {
+                            user.lockedBalance[quoteAsset] = prevLocked - amount;
+                            user.balance[quoteAsset] = prevBalance + amount;
+                        }
                     } else {
-                        user?.lockedHolding.set(baseAsset, user.lockedHolding.get(baseAsset)! - order.quantity);
-                        user?.holdings.set(baseAsset, user.holdings.get(baseAsset)! + order.quantity);
+                        const prevLockedHolding = user?.lockedHolding[baseAsset] ?? 0;
+                        const prevHolding = user?.holdings[baseAsset] ?? 0;
+                        if (user) {
+                            user.lockedHolding[baseAsset] = prevLockedHolding - order.quantity;
+                            user.holdings[baseAsset] = prevHolding + order.quantity;
+                        }
                     }
                     this._wsUpdateDepthAndSend(market);
                 } catch (error) {
@@ -85,13 +93,13 @@ export class Engine {
                     if (!market) throw new Error(`No orderbook found named ${market} !!`);
                     const depth = market.getDepth();
 
-                    RedisManager.getInstance().publishMessage(clientId, {
+                    await RedisManager.getInstance().publishMessage(clientId, {
                         type: "API_DEPTH",
                         data: depth
                     })
                 } catch (error) {
                     console.error(error);
-                    RedisManager.getInstance().publishMessage(clientId, {
+                    await RedisManager.getInstance().publishMessage(clientId, {
                         type: "API_DEPTH",
                         data: { bids: {}, asks: {} }
                     })
@@ -115,19 +123,13 @@ export class Engine {
                         userId,
                         userName,
                         userPassword,
-                        balance: new Map([
-                            ["INR", 1000],
-                            ["USD", 5.5],
-                        ]),
-                        lockedBalance: new Map(),
-                        holdings: new Map([
-                            ["TATA", 50],
-                            ["ETH", 2],
-                        ]),
-                        lockedHolding: new Map(),
+                        balance: { INR: 1000, USD: 5.5 },
+                        lockedBalance: {},
+                        holdings: { TATA: 50, ETH: 2 },
+                        lockedHolding: {},
                     });
 
-                    RedisManager.getInstance().publishMessage(clientId, {
+                    await RedisManager.getInstance().publishMessage(clientId, {
                         type: "API_USER_CREATED",
                         data: {
                             status: true
@@ -135,7 +137,7 @@ export class Engine {
                     })
                 } catch (error) {
                     console.error(error);
-                    RedisManager.getInstance().publishMessage(clientId, {
+                    await RedisManager.getInstance().publishMessage(clientId, {
                         type: "API_USER_CREATED",
                         data: {
                             status: false
@@ -148,16 +150,16 @@ export class Engine {
                     const { userId, currency, amount } = message.data;
                     const user = this.users.get(userId);
                     if (!user) {
-                        RedisManager.getInstance().publishMessage(clientId, {
+                        await RedisManager.getInstance().publishMessage(clientId, {
                             type: "Error",
                             errorMsg: "No user found !!"
                         })
                         return;
                     }
-                    user.balance.set(currency, (user.balance.get(currency) ?? 0) + amount);
+                    user.balance[currency] = (user.balance[currency] ?? 0) + amount;
                 } catch (error) {
                     console.log(error);
-                    RedisManager.getInstance().publishMessage(clientId, {
+                    await RedisManager.getInstance().publishMessage(clientId, {
                         type: "Error",
                         errorMsg: "Something went wrong"
                     })
@@ -167,13 +169,13 @@ export class Engine {
                 const { userId } = message.data;
                 const user = this.users.get(userId);
                 if (!user) {
-                    RedisManager.getInstance().publishMessage(clientId, {
+                    await RedisManager.getInstance().publishMessage(clientId, {
                         type: "Error",
                         errorMsg: "No user found !!"
                     })
                     return;
                 }
-                RedisManager.getInstance().publishMessage(clientId, {
+                await RedisManager.getInstance().publishMessage(clientId, {
                     type: "API_USER_PORTFOLIO",
                     data: {
                         user
@@ -214,17 +216,18 @@ export class Engine {
         }
         if (side == "buy") {
             const amount = quantity * price;
-            if ((user.balance.get(quoteAsset) ?? 0) < amount) {
+            if ((user.balance[quoteAsset] ?? 0) < amount) {
                 throw new Error("Insufficient balance to buy !!");
             }
-            user.balance.set(quoteAsset, (user.balance.get(quoteAsset) ?? 0) - amount);
-            user.lockedBalance.set(quoteAsset, (user.lockedBalance.get(quoteAsset) ?? 0) + amount);
+            user.balance[quoteAsset] = (user.balance[quoteAsset] ?? 0) - amount;
+            user.lockedBalance[quoteAsset] = (user.lockedBalance[quoteAsset] ?? 0) + amount;
+
         } else {
-            if ((user.holdings.get(baseAsset) ?? 0) < quantity) {
-                throw new Error("Insufficient funds to sell !!")
+            if ((user.holdings[baseAsset] ?? 0) < quantity) {
+                throw new Error("Insufficient funds to sell !!");
             }
-            user.holdings.set(baseAsset, (user.holdings.get(baseAsset) ?? 0) - quantity);
-            user.lockedHolding.set(baseAsset, (user.lockedHolding.get(baseAsset) ?? 0) + quantity);
+            user.holdings[baseAsset] = (user.holdings[baseAsset] ?? 0) - quantity;
+            user.lockedHolding[baseAsset] = (user.lockedHolding[baseAsset] ?? 0) + quantity;
         }
     }
     private _updateUserFundsOrHoldings(executedQuantity: number, fills: Fill[], price: number, baseAsset: string, quoteAsset: string, side: "buy" | "sell", userId: string): void {
@@ -238,25 +241,36 @@ export class Engine {
         }
         if (side == "buy") {
             const amount = executedQuantity * price;
+
             fills.forEach(fill => {
                 const fillOwner = this.users.get(fill.fillOwnerId);
                 if (fillOwner) {
-                    fillOwner.lockedHolding.set(baseAsset, (fillOwner.lockedHolding.get(baseAsset) ?? 0) - fill.quantity);
-                    fillOwner.balance.set(quoteAsset, (fillOwner.balance.get(quoteAsset) ?? 0) + (fill.price * fill.quantity));
+                    const prevLockedHolding = fillOwner.lockedHolding[baseAsset] ?? 0;
+                    const prevBalance = fillOwner.balance[quoteAsset] ?? 0;
+
+                    fillOwner.lockedHolding[baseAsset] = prevLockedHolding - fill.quantity;
+                    fillOwner.balance[quoteAsset] = prevBalance + (fill.price * fill.quantity);
                 }
-                // TODO [IMP]: replace fillOwner with try catch and do something when some err occurs in any case like user not found, quoteAsset key is not there and store that fill separately in a list to handle it 
-            })
-            user.lockedBalance.set(quoteAsset, (user.lockedBalance.get(quoteAsset) ?? 0) - amount);
-            user.holdings.set(baseAsset, user.holdings.get(baseAsset)! + executedQuantity);
+                // TODO [IMP]: replace fillOwner with try catch and handle errors, such as user not found, missing asset keys, etc. Store failed fills separately.
+            });
+            if (user) {
+                user.lockedBalance[quoteAsset] = (user.lockedBalance[quoteAsset] ?? 0) - amount;
+                user.holdings[baseAsset] = (user.holdings[baseAsset] ?? 0) + executedQuantity;
+            }
         } else {
             fills.forEach(fill => {
                 const fillOwner = this.users.get(fill.fillOwnerId);
                 if (fillOwner) {
-                    fillOwner.holdings.set(baseAsset, fillOwner.holdings.get(baseAsset)! + fill.quantity);
-                    fillOwner.lockedBalance.set(quoteAsset, fillOwner.lockedBalance.get(quoteAsset)! - (fill.quantity * fill.price));
+                    const prevHoldings = fillOwner.holdings[baseAsset] ?? 0;
+                    const prevLockedBalance = fillOwner.lockedBalance[quoteAsset] ?? 0;
+
+                    fillOwner.holdings[baseAsset] = prevHoldings + fill.quantity;
+                    fillOwner.lockedBalance[quoteAsset] = prevLockedBalance - (fill.quantity * fill.price);
                 }
             });
-            user.lockedHolding.set(baseAsset, user.lockedHolding.get(baseAsset)! - executedQuantity)
+            if (user) {
+                user.lockedHolding[baseAsset] = (user.lockedHolding[baseAsset] ?? 0) - executedQuantity;
+            }
         }
     }
 
@@ -295,12 +309,12 @@ export class Engine {
             }
         )
     }
-    private _wsUpdateDepthAndSend(market: string): void {
+    private async _wsUpdateDepthAndSend(market: string) {
         const orderBook = this.markets.get(market);
         if (!orderBook) return;
 
         const depth = orderBook.getDepth();
-        RedisManager.getInstance().publishMessage(`ws_depth@${market}`, {
+        await RedisManager.getInstance().publishMessage(`ws_depth@${market}`, {
             type: "DEPTH",
             data: {
                 market,

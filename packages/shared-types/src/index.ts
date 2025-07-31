@@ -28,10 +28,10 @@ export interface UserInterface {
     userId: string;
     userName: string;
     userPassword: string;
-    balance: Map<string, number>; // currency -> amount
-    lockedBalance: Map<string, number>; // currency -> amount
-    holdings: Map<string, number>; // base_asset -> quantity
-    lockedHolding: Map<string, number>; // base_asset -> quantity
+    balance: Record<string, number>; // currency -> amount
+    lockedBalance: Record<string, number>; // currency -> amount
+    holdings: Record<string, number>; // base_asset -> quantity
+    lockedHolding: Record<string, number>; // base_asset -> quantity
 }
 
 
