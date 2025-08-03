@@ -33,6 +33,18 @@ export class Engine {
             case "ENGINE_CREATE_ORDER":
                 try {
                     const { quantity, price, market, side, userId } = message.data;
+                    if (!this.markets.has(market)) {
+                        throw new Error(`Market ${market} does not exist`);
+                    }
+                    if (!this.users.has(userId)) {
+                        throw new Error(`User ${userId} does not exist`);
+                    }
+                    if (quantity <= 0 || price <= 0) {
+                        throw new Error("Quantity and price must be greater than 0");
+                    }
+                    if (side !== "buy" && side !== "sell") {
+                        throw new Error("Side must be either 'buy' or 'sell'");
+                    }
                     const { executedQuantity, fills, orderId } = this._createOrder(quantity, price, market, side, userId);
                     await RedisManager.getInstance().publishMessage(clientId, {
                         type: "API_ORDER_PLACED",
@@ -108,16 +120,6 @@ export class Engine {
             case "ENGINE_CREATE_USER":
                 try {
                     const { userId, userName, userPassword } = message.data;
-
-                    // this.users.set(userId, {
-                    //     userId,
-                    //     userName,
-                    //     userPassword,
-                    //     balance: new Map(),
-                    //     lockedBalance: new Map(),
-                    //     holdings: new Map(),
-                    //     lockedHolding: new Map(),
-                    // });
 
                     this.users.set(userId, {
                         userId,
@@ -240,8 +242,6 @@ export class Engine {
             throw new Error("User not found");
         }
         if (side == "buy") {
-            const amount = executedQuantity * price;
-
             fills.forEach(fill => {
                 const fillOwner = this.users.get(fill.fillOwnerId);
                 if (fillOwner) {
@@ -250,12 +250,20 @@ export class Engine {
 
                     fillOwner.lockedHolding[baseAsset] = prevLockedHolding - fill.quantity;
                     fillOwner.balance[quoteAsset] = prevBalance + (fill.price * fill.quantity);
+
+                    if (fillOwner.lockedHolding[baseAsset] === 0) {
+                        delete fillOwner.lockedHolding[baseAsset];
+                    }
                 }
                 // TODO [IMP]: replace fillOwner with try catch and handle errors, such as user not found, missing asset keys, etc. Store failed fills separately.
             });
             if (user) {
-                user.lockedBalance[quoteAsset] = (user.lockedBalance[quoteAsset] ?? 0) - amount;
+                user.lockedBalance[quoteAsset] = (user.lockedBalance[quoteAsset] ?? 0) - fills.reduce((acc, fill) => acc + (fill.price * fill.quantity), 0);
                 user.holdings[baseAsset] = (user.holdings[baseAsset] ?? 0) + executedQuantity;
+
+                if (user.lockedBalance[quoteAsset] === 0) {
+                    delete user.lockedBalance[quoteAsset];
+                }
             }
         } else {
             fills.forEach(fill => {
@@ -266,10 +274,19 @@ export class Engine {
 
                     fillOwner.holdings[baseAsset] = prevHoldings + fill.quantity;
                     fillOwner.lockedBalance[quoteAsset] = prevLockedBalance - (fill.quantity * fill.price);
+
+                    if (fillOwner.lockedBalance[quoteAsset] === 0) {
+                        delete fillOwner.lockedBalance[quoteAsset];
+                    }
                 }
             });
             if (user) {
                 user.lockedHolding[baseAsset] = (user.lockedHolding[baseAsset] ?? 0) - executedQuantity;
+                user.balance[quoteAsset] = (user.balance[quoteAsset] ?? 0) + fills.reduce((sum, fill) => sum + fill.price * fill.quantity, 0);
+
+                if (user.lockedHolding[baseAsset] === 0) {
+                    delete user.lockedHolding[baseAsset];
+                }
             }
         }
     }
@@ -322,5 +339,13 @@ export class Engine {
                 bids: depth.bids,
             }
         });
+    }
+
+    public addMarket(baseAsset: string, quoteAsset: string): void {
+        const marketName = `${baseAsset}_${quoteAsset}`;
+        if (this.markets.has(marketName)) {
+            throw new Error(`Market ${marketName} already exists`);
+        }
+        this.markets.set(marketName, new OrderBook(baseAsset, quoteAsset));
     }
 }
