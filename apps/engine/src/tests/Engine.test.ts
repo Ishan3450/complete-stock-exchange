@@ -8,16 +8,13 @@ describe("Engine Tests", () => {
     let sub: RedisClientType;
     let CLIENT_ID = "1";
 
-    beforeAll(async () => {
+    beforeEach(async () => {
         engine = Engine.getInstance();
         pub = createClient();
         sub = createClient();
         await pub.connect();
         await sub.connect();
         engine.addMarket("TATA", "INR");
-    });
-
-    beforeEach(async () => {
         await engine.process({
             clientId: CLIENT_ID,
             message: {
@@ -42,7 +39,7 @@ describe("Engine Tests", () => {
         });
     })
 
-    test("Test ENGINE_CREATE_ORDER", async () => {
+    test("Test ENGINE_CREATE_ORDER - first buy then sell", async () => {
         let beforeUser1: UserInterface, beforeUser2: UserInterface;
         let afterUser1: UserInterface, afterUser2: UserInterface;
 
@@ -71,12 +68,13 @@ describe("Engine Tests", () => {
 
                     if (beforeUser1 && beforeUser2 && afterUser1 && afterUser2) {
                         try {
-                            console.log('bu1', beforeUser1);
-                            console.log('bu2', beforeUser2);
-                            console.log('au1', afterUser1);
-                            console.log('au2', afterUser2);
+                            expect(afterUser1.balance["INR"] ?? 0).toEqual((beforeUser1.balance["INR"] ?? 0) - 200);
+                            expect(afterUser1.lockedBalance["INR"] ?? 0).toEqual(100);
+                            expect(afterUser1.holdings["TATA"] ?? 0).toEqual((beforeUser1.holdings["TATA"] ?? 0) + 1);
 
-                            // TODO: checks will be here
+                            expect(afterUser2.holdings["TATA"] ?? 0).toEqual((beforeUser2.holdings["TATA"] ?? 0) - 1);
+                            expect(afterUser2.lockedHolding).toEqual({});
+                            expect(afterUser2.balance["INR"] ?? 0).toEqual((beforeUser2.balance["INR"] ?? 0) + 100);
 
                             resolve(); // resume after all the checks
                         } catch (err) {
@@ -112,13 +110,82 @@ describe("Engine Tests", () => {
         });
     });
 
+    test("Test ENGINE_CREATE_ORDER - first sell then buy", async () => {
+        let beforeUser1: UserInterface, beforeUser2: UserInterface;
+        let afterUser1: UserInterface, afterUser2: UserInterface;
+
+        await new Promise<void>(async (resolve, reject) => {
+            await sub.subscribe("1", async (message: string) => {
+                const parsedMessage: ApiEngineMessageType = JSON.parse(message);
+
+                if (parsedMessage.type === "API_USER_PORTFOLIO") {
+                    const user = parsedMessage.data.user;
+                    switch (user.userId) {
+                        case "1":
+                            if (!beforeUser1) {
+                                beforeUser1 = user;
+                            } else {
+                                afterUser1 = user;
+                            }
+                            break;
+                        case "2":
+                            if (!beforeUser2) {
+                                beforeUser2 = user;
+                            } else {
+                                afterUser2 = user;
+                            }
+                            break;
+                    }
+
+                    if (beforeUser1 && beforeUser2 && afterUser1 && afterUser2) {
+                        try {
+                            expect(afterUser2.balance["INR"] ?? 0).toEqual((beforeUser2.balance["INR"] ?? 0) + 98);
+                            expect(afterUser2.holdings["TATA"] ?? 0).toEqual((beforeUser2.holdings["TATA"] ?? 0) - 1);
+                            expect(afterUser2.lockedHolding).toEqual({});
+
+                            expect(afterUser1.balance["INR"] ?? 0).toEqual((beforeUser1.balance["INR"] ?? 0) - 200);
+                            expect(afterUser1.lockedBalance["INR"] ?? 0).toEqual(102);
+                            expect(afterUser1.holdings["TATA"] ?? 0).toEqual((beforeUser1.holdings["TATA"] ?? 0) + 1);
+
+                            resolve(); // resume after all the checks
+                        } catch (err) {
+                            reject(err);
+                        }
+                    }
+                }
+            });
+
+            // Get initial portfolios
+            await engine.process({ clientId: "1", message: { type: "ENGINE_GET_USER_PORTFOLIO", data: { userId: "1" } } });
+            await engine.process({ clientId: "1", message: { type: "ENGINE_GET_USER_PORTFOLIO", data: { userId: "2" } } });
+
+            // Perform transactions
+            await engine.process({
+                clientId: "1",
+                message: {
+                    type: "ENGINE_CREATE_ORDER",
+                    data: { market: "TATA_INR", price: 98, quantity: 1, side: "sell", userId: "2" }
+                }
+            });
+            await engine.process({
+                clientId: "1",
+                message: {
+                    type: "ENGINE_CREATE_ORDER",
+                    data: { market: "TATA_INR", price: 100, quantity: 2, side: "buy", userId: "1" }
+                }
+            });
+
+            // Get updated portfolios
+            await engine.process({ clientId: "1", message: { type: "ENGINE_GET_USER_PORTFOLIO", data: { userId: "1" } } });
+            await engine.process({ clientId: "1", message: { type: "ENGINE_GET_USER_PORTFOLIO", data: { userId: "2" } } });
+        });
+    });
+
 
     afterEach(async () => {
+        engine.removeMarket("TATA_INR");
         await sub.unsubscribe("1");
-    })
-
-    afterAll(async () => {
         await pub.quit();
         await sub.quit();
-    });
+    })
 });

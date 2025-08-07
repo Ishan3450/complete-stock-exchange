@@ -348,4 +348,11 @@ export class Engine {
         }
         this.markets.set(marketName, new OrderBook(baseAsset, quoteAsset));
     }
+
+    public removeMarket(marketName: string): void {
+        if (!this.markets.has(marketName)) {
+            throw new Error(`Market ${marketName} doesn't exists`);
+        }
+        this.markets.delete(marketName);
+    }
 }
