@@ -29,163 +29,199 @@ export class Engine {
     }
 
     public async process({ clientId, message }: { clientId: string, message: EngineApiMessageType }) {
-        switch (message.type) {
-            case "ENGINE_CREATE_ORDER":
-                try {
-                    const { quantity, price, market, side, userId } = message.data;
-                    if (!this.markets.has(market)) {
-                        throw new Error(`Market ${market} does not exist`);
-                    }
-                    if (!this.users.has(userId)) {
-                        throw new Error(`User ${userId} does not exist`);
-                    }
-                    if (quantity <= 0 || price <= 0) {
-                        throw new Error("Quantity and price must be greater than 0");
-                    }
-                    if (side !== "buy" && side !== "sell") {
-                        throw new Error("Side must be either 'buy' or 'sell'");
-                    }
-                    const { executedQuantity, fills, orderId } = this._createOrder(quantity, price, market, side, userId);
-                    await RedisManager.getInstance().publishMessage(clientId, {
-                        type: "API_ORDER_PLACED",
-                        data: { executedQuantity, fills, orderId }
-                    });
-                } catch (error) {
-                    console.error(error);
-                    await RedisManager.getInstance().publishMessage(clientId, {
-                        type: "API_ORDER_CANCELLED",
-                        data: {
-                            executedQuantity: 0,
-                            fills: [],
-                            orderId: 0,
+        try {
+            switch (message.type) {
+                case "ENGINE_CREATE_ORDER":
+                    try {
+                        const { quantity, price, market, side, userId } = message.data;
+                        if (!this.markets.has(market)) {
+                            throw new Error(`Market ${market} does not exist`);
                         }
-                    });
-                }
-                break;
-            case "ENGINE_CANCEL_ORDER":
-                try {
-                    const { orderId, market, userId, side } = message.data;
-                    let order = this.markets.get(market)?.cancelOrder(orderId, side);
-
-                    if (order === false) {
-                        throw new Error("Manual ERR: No result from cancel order !!");
-                    }
-                    order = order as Order;
-                    const user = this.users.get(userId);
-                    const [baseAsset, quoteAsset] = market.split("_");
-
-                    if (!baseAsset || !quoteAsset) {
-                        throw new Error(`Invalid market ${market}`)
-                    }
-
-                    if (side === "buy") {
-                        const amount = order.price * (order.quantity - order.filled);
-                        const prevLocked = user?.lockedBalance[quoteAsset] ?? 0;
-                        const prevBalance = user?.balance[quoteAsset] ?? 0;
-                        if (user) {
-                            user.lockedBalance[quoteAsset] = prevLocked - amount;
-                            user.balance[quoteAsset] = prevBalance + amount;
+                        if (!this.users.has(userId)) {
+                            throw new Error(`User ${userId} does not exist`);
                         }
-                    } else {
-                        const prevLockedHolding = user?.lockedHolding[baseAsset] ?? 0;
-                        const prevHolding = user?.holdings[baseAsset] ?? 0;
-                        if (user) {
-                            user.lockedHolding[baseAsset] = prevLockedHolding - order.quantity;
-                            user.holdings[baseAsset] = prevHolding + order.quantity;
+                        if (quantity <= 0 || price <= 0) {
+                            throw new Error("Quantity and price must be greater than 0");
                         }
-                    }
-                    this._wsUpdateDepthAndSend(market);
-                } catch (error) {
-                    console.error(error);
-                }
-                break;
-            case "ENGINE_GET_DEPTH":
-                try {
-                    const market = this.markets.get(message.data.market);
-                    if (!market) throw new Error(`No orderbook found named ${market} !!`);
-                    const depth = market.getDepth();
-
-                    await RedisManager.getInstance().publishMessage(clientId, {
-                        type: "API_DEPTH",
-                        data: depth
-                    })
-                } catch (error) {
-                    console.error(error);
-                    await RedisManager.getInstance().publishMessage(clientId, {
-                        type: "API_DEPTH",
-                        data: { bids: {}, asks: {} }
-                    })
-                }
-                break;
-            case "ENGINE_CREATE_USER":
-                try {
-                    const { userId, userName, userPassword } = message.data;
-
-                    this.users.set(userId, {
-                        userId,
-                        userName,
-                        userPassword,
-                        balance: { INR: 1000, USD: 5.5 },
-                        lockedBalance: {},
-                        holdings: { TATA: 50, ETH: 2 },
-                        lockedHolding: {},
-                    });
-
-                    await RedisManager.getInstance().publishMessage(clientId, {
-                        type: "API_USER_CREATED",
-                        data: {
-                            status: true
+                        if (side !== "buy" && side !== "sell") {
+                            throw new Error("Side must be either 'buy' or 'sell'");
                         }
-                    })
-                } catch (error) {
-                    console.error(error);
-                    await RedisManager.getInstance().publishMessage(clientId, {
-                        type: "API_USER_CREATED",
-                        data: {
-                            status: false
-                        }
-                    })
-                }
-                break;
-            case "ENGINE_ADD_BALANCE":
-                try {
-                    const { userId, currency, amount } = message.data;
-                    const user = this.users.get(userId);
-                    if (!user) {
+                        const { executedQuantity, fills, orderId } = this._createOrder(quantity, price, market, side, userId);
+                        await RedisManager.getInstance().publishMessage(clientId, {
+                            type: "API_ORDER_PLACED",
+                            data: { executedQuantity, fills, orderId }
+                        });
+                    } catch (error: any) {
+                        console.log(error);
                         await RedisManager.getInstance().publishMessage(clientId, {
                             type: "Error",
-                            errorMsg: "No user found !!"
+                            errorMsg: error.message,
+                        });
+                    }
+                    break;
+                case "ENGINE_CANCEL_ORDER":
+                    try {
+                        const { orderId, market, userId, side } = message.data;
+
+                        if (!this.markets.has(market)) {
+                            throw new Error(`Market ${market} does not exist`);
+                        }
+                        let order = this.markets.get(market)?.cancelOrder(orderId, side);
+
+                        if (order === false) {
+                            throw new Error("No order found to cancel !!");
+                        }
+                        order = order as Order;
+                        const user = this.users.get(userId);
+                        const [baseAsset, quoteAsset] = market.split("_");
+
+                        if (!baseAsset || !quoteAsset) {
+                            throw new Error(`Invalid market ${market}`)
+                        }
+
+                        if (side === "buy") {
+                            const amount = order.price * (order.quantity - order.filled);
+                            const prevLockedBalance = user?.lockedBalance[quoteAsset] ?? 0;
+                            const prevBalance = user?.balance[quoteAsset] ?? 0;
+                            if (user) {
+                                user.lockedBalance[quoteAsset] = prevLockedBalance - amount;
+                                user.balance[quoteAsset] = prevBalance + amount;
+
+                                if (user.lockedBalance[quoteAsset] === 0) {
+                                    delete user.lockedBalance[quoteAsset];
+                                }
+                            }
+                        } else {
+                            const prevLockedHolding = user?.lockedHolding[baseAsset] ?? 0;
+                            const prevHolding = user?.holdings[baseAsset] ?? 0;
+                            if (user) {
+                                user.lockedHolding[baseAsset] = prevLockedHolding - order.quantity;
+                                user.holdings[baseAsset] = prevHolding + order.quantity;
+
+                                if (user.lockedHolding[baseAsset] === 0) {
+                                    delete user.lockedHolding[baseAsset];
+                                }
+                            }
+                        }
+
+                        // NOTE: cancel order will be followed by get user portfolio
+                        this.process({
+                            clientId, message: {
+                                type: "ENGINE_GET_USER_PORTFOLIO",
+                                data: { userId }
+                            }
                         })
-                        return;
+                        this._wsUpdateDepthAndSend(market);
+                    } catch (error: any) {
+                        console.log(error);
+                        await RedisManager.getInstance().publishMessage(clientId, {
+                            type: "Error",
+                            errorMsg: error.message,
+                        })
                     }
-                    user.balance[currency] = (user.balance[currency] ?? 0) + amount;
-                } catch (error) {
-                    console.log(error);
-                    await RedisManager.getInstance().publishMessage(clientId, {
-                        type: "Error",
-                        errorMsg: "Something went wrong"
-                    })
-                }
-                break;
-            case "ENGINE_GET_USER_PORTFOLIO":
-                const { userId } = message.data;
-                const user = this.users.get(userId);
-                if (!user) {
-                    await RedisManager.getInstance().publishMessage(clientId, {
-                        type: "Error",
-                        errorMsg: "No user found !!"
-                    })
-                    return;
-                }
-                await RedisManager.getInstance().publishMessage(clientId, {
-                    type: "API_USER_PORTFOLIO",
-                    data: {
-                        user
+                    break;
+                case "ENGINE_GET_DEPTH":
+                    try {
+                        const market = this.markets.get(message.data.market);
+                        if (!market) throw new Error(`No orderbook found named ${market} !!`);
+                        const depth = market.getDepth();
+
+                        await RedisManager.getInstance().publishMessage(clientId, {
+                            type: "API_DEPTH",
+                            data: depth
+                        })
+                    } catch (error) {
+                        console.log(error);
+                        await RedisManager.getInstance().publishMessage(clientId, {
+                            type: "API_DEPTH",
+                            data: { bids: {}, asks: {} }
+                        })
                     }
-                })
-                break;
-            default:
-                break;
+                    break;
+                case "ENGINE_CREATE_USER":
+                    try {
+                        const { userId, userName, userPassword } = message.data;
+
+                        this.users.set(userId, {
+                            userId,
+                            userName,
+                            userPassword,
+                            balance: { INR: 1000, USD: 5.5 },
+                            lockedBalance: {},
+                            holdings: { TATA: 50, ETH: 2 },
+                            lockedHolding: {},
+                        });
+
+                        await RedisManager.getInstance().publishMessage(clientId, {
+                            type: "API_USER_CREATED",
+                            data: {
+                                status: true
+                            }
+                        })
+                    } catch (error) {
+                        console.log(error);
+                        await RedisManager.getInstance().publishMessage(clientId, {
+                            type: "API_USER_CREATED",
+                            data: {
+                                status: false
+                            }
+                        })
+                    }
+                    break;
+                case "ENGINE_ADD_BALANCE":
+                    try {
+                        const { userId, currency, amount } = message.data;
+                        const user = this.users.get(userId);
+                        if (!user) {
+                            await RedisManager.getInstance().publishMessage(clientId, {
+                                type: "Error",
+                                errorMsg: "No user found !!"
+                            })
+                            return;
+                        }
+                        user.balance[currency] = (user.balance[currency] ?? 0) + amount;
+                    } catch (error) {
+                        console.log(error);
+                        await RedisManager.getInstance().publishMessage(clientId, {
+                            type: "Error",
+                            errorMsg: "Something went wrong"
+                        })
+                    }
+                    break;
+                case "ENGINE_GET_USER_PORTFOLIO":
+                    try {
+                        const { userId } = message.data;
+                        const user = this.users.get(userId);
+                        if (!user) {
+                            await RedisManager.getInstance().publishMessage(clientId, {
+                                type: "Error",
+                                errorMsg: "No user found !!"
+                            })
+                            return;
+                        }
+                        await RedisManager.getInstance().publishMessage(clientId, {
+                            type: "API_USER_PORTFOLIO",
+                            data: {
+                                user
+                            }
+                        })
+                    } catch (error) {
+                        console.log(error);
+                        await RedisManager.getInstance().publishMessage(clientId, {
+                            type: "Error",
+                            errorMsg: "Something went wrong"
+                        })
+                    }
+                    break;
+                default:
+                    break;
+            }
+        } catch (error) {
+            console.log("Process error:", error);
+            await RedisManager.getInstance().publishMessage(clientId, {
+                type: "Error",
+                errorMsg: "Internal engine error"
+            });
         }
     }
 

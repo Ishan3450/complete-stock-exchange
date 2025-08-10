@@ -89,7 +89,7 @@ export type EngineApiMessageType = {
  * Type: From Engine to API
  */
 export type ApiEngineMessageType = {
-    type: "API_ORDER_PLACED" | "API_ORDER_CANCELLED",
+    type: "API_ORDER_PLACED",
     data: {
         orderId: number,
         fills: Fill[],
@@ -110,6 +110,11 @@ export type ApiEngineMessageType = {
     type: "API_USER_PORTFOLIO",
     data: {
         user: UserInterface
+    }
+} | {
+    type: "API_ORDER_CANCELLED",
+    data: {
+        
     }
 };
 
