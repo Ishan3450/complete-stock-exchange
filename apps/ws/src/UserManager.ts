@@ -25,6 +25,12 @@ export class UserManager {
         const userId: string = uuid();
         const user = new User(userId, ws);
         this.users.set(userId, user);
+
+        // immediately respond back the user with the ws user id
+        user.emit({
+            type: "TAKE_USERID",
+            data: { userId }
+        });
     }
 
     public getUser(userId: string): User {

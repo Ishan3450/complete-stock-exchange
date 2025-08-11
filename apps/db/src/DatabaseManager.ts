@@ -26,9 +26,6 @@ export class DatabaseManager {
         setInterval(this._refreshOhlcvViews, 60 * 1000);
     }
 
-    async _addDemoData() {
-    }
-
     public process(message: DatabaseEngineMessageType) {
         switch (message.type) {
             case "DB_ADD_TRADES":
@@ -92,8 +89,9 @@ export class DatabaseManager {
     private async _refreshOhlcvViews() {
         this.ohlcvViews.forEach(async (view) => {
             await this.pgClient.query(`REFRESH MATERIALIZED VIEW ${view}`);
-        })
 
-        // TODO: send to ws server that the views got refreshed
+            const { rows } = await this.pgClient.query(`SELECT * FROM ${view}`);
+            await this.redisClient.publish(view.toString(), JSON.stringify(rows));
+        })
     }
 }

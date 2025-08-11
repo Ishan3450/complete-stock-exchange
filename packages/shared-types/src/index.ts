@@ -114,7 +114,7 @@ export type ApiEngineMessageType = {
 } | {
     type: "API_ORDER_CANCELLED",
     data: {
-        
+
     }
 };
 
@@ -165,7 +165,12 @@ export type WebsocketEngineMessageType = {
 /**
  * Type: From WS to Frontend
  */
-export type FrontendWebsocketMessageType = WebsocketEngineMessageType;
+export type FrontendWebsocketMessageType = WebsocketEngineMessageType | {
+    type: "TAKE_USERID",
+    data: {
+        userId: string
+    }
+};
 
 /**
  * Type: From Frontend to WS
