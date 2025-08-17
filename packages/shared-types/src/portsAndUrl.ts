@@ -1,0 +1,8 @@
+export const httpHostUrl = "http://localhost";
+export const wsHostUrl = "ws://localhost";
+export const baseUrl = "/api/v1";
+export const uiPort = 3000;
+export const apiPort = 3001;
+export const wsPort = 3002;
+export const apiUrl = `${httpHostUrl}:${apiPort}${baseUrl}`;
+export const wsUrl = `${wsHostUrl}:${wsPort}`;

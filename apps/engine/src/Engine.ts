@@ -1,6 +1,6 @@
 import { OrderBook, OrderExecuted } from "./OrderBook";
 import { RedisManager } from "./RedisManager";
-import { Fill, Order, EngineApiMessageType, UserInterface } from "@repo/shared-types/src";
+import { Fill, Order, EngineApiMessageType, UserInterface } from "@repo/shared-types/types";
 
 
 export class Engine {

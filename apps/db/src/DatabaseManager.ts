@@ -1,5 +1,5 @@
 import { RedisClientType } from "@redis/client";
-import { DatabaseEngineMessageType } from "@repo/shared-types/src";
+import { DatabaseEngineMessageType } from "@repo/shared-types/types";
 import { Client } from "pg";
 import { createClient } from "redis";
 
@@ -48,6 +48,7 @@ export class DatabaseManager {
     }
 
     private async _createTableIfNotExists(tableName: string): Promise<void> {
+        tableName = tableName.toLowerCase();
         const query = `
             CREATE TABLE IF NOT EXISTS ${tableName} (
                 price           NUMERIC(10,2)   NOT NULL,
@@ -87,7 +88,7 @@ export class DatabaseManager {
     }
 
     private async _refreshOhlcvViews() {
-        this.ohlcvViews.forEach(async (view) => {
+        this.ohlcvViews?.forEach(async (view) => {
             await this.pgClient.query(`REFRESH MATERIALIZED VIEW ${view}`);
 
             const { rows } = await this.pgClient.query(`SELECT * FROM ${view}`);

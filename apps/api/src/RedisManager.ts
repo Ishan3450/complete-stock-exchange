@@ -1,5 +1,5 @@
 import { createClient, RedisClientType } from "redis";
-import { EngineApiMessageType, ApiEngineMessageType } from "@repo/shared-types/src/index";
+import { EngineApiMessageType, ApiEngineMessageType } from "@repo/shared-types/types";
 import { v4 as uuid } from 'uuid';
 
 export class RedisManager {

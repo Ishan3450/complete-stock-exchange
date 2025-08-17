@@ -1,6 +1,6 @@
 import { Request, Response, Router } from "express";
 import { RedisManager } from "../RedisManager";
-import { ApiEngineMessageType } from "@repo/shared-types/src";
+import { ApiEngineMessageType } from "@repo/shared-types/types";
 
 export const orderRouter = Router();
 

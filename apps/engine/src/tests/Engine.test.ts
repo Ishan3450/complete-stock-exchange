@@ -1,6 +1,6 @@
 import { createClient, RedisClientType } from "redis";
 import { Engine } from "../Engine";
-import { ApiEngineMessageType, Error, UserInterface } from "@repo/shared-types/src";
+import { ApiEngineMessageType, Error, UserInterface } from "@repo/shared-types/types";
 
 describe("Engine Tests", () => {
     let engine: Engine;

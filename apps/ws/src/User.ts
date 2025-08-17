@@ -1,4 +1,4 @@
-import { FrontendWebsocketMessageType, WebsocketFrontendMessageType } from "@repo/shared-types/src";
+import { FrontendWebsocketMessageType, WebsocketFrontendMessageType } from "@repo/shared-types/types";
 import { WebSocket } from "ws";
 import { SubscriptionManager } from "./SubscriptionManager";
 import { UserManager } from "./UserManager";
@@ -28,6 +28,6 @@ export class User {
     }
 
     public emit(message: FrontendWebsocketMessageType): void {
-        this.ws.emit(JSON.stringify(message));
+        this.ws.send(JSON.stringify(message));
     }
 }

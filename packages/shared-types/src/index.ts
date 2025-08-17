@@ -84,6 +84,17 @@ export type EngineApiMessageType = {
     }
 };
 
+/**
+ * Type: From api to frontend
+ */
+export type FrontendApiMessageType = {
+    type: "ERROR",
+    message: string
+} | {
+    type: "SUCCESS",
+    userId: number,
+}
+
 
 /**
  * Type: From Engine to API

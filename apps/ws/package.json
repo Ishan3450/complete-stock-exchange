@@ -1,7 +1,7 @@
 {
   "name": "@repo/ws",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "dev": "tsc -b && node dist/index.js"
   },
@@ -12,7 +12,8 @@
   "dependencies": {
     "@repo/shared-types": "*",
     "@repo/typescript-config": "*",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@types/uuid": "^10.0.0",

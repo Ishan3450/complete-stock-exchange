@@ -1,5 +1,5 @@
 import { createClient, RedisClientType } from "redis";
-import { ApiEngineMessageType, DatabaseEngineMessageType, Error, WebsocketEngineMessageType } from "@repo/shared-types/src/index";
+import { ApiEngineMessageType, DatabaseEngineMessageType, Error, WebsocketEngineMessageType } from "@repo/shared-types/types";
 
 export class RedisManager {
   private static instance: RedisManager;

@@ -1,4 +1,4 @@
-import { Order } from "@repo/shared-types/src";
+import { Order } from "@repo/shared-types/types";
 import { OrderBook } from "../OrderBook";
 
 describe("OrderBook Tests", () => {

@@ -1,5 +1,5 @@
 import { createClient } from "redis";
-import { DatabaseEngineMessageType } from "@repo/shared-types/src/index";
+import { DatabaseEngineMessageType } from "@repo/shared-types/types";
 import { DatabaseManager } from "./DatabaseManager";
 
 

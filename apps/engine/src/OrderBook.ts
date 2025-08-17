@@ -1,4 +1,4 @@
-import { Order, Fill } from "@repo/shared-types/src/index"
+import { Order, Fill } from "@repo/shared-types/types"
 
 export interface OrderExecuted {
     executedQuantity: number;

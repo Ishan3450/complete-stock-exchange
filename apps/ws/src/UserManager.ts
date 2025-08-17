@@ -31,6 +31,7 @@ export class UserManager {
             type: "TAKE_USERID",
             data: { userId }
         });
+        console.log(`User added ${userId}`);
     }
 
     public getUser(userId: string): User {

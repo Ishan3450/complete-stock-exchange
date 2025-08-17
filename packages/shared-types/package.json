@@ -1,7 +1,8 @@
 {
   "name": "@repo/shared-types",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "dev": "tsc -b && node dist/index.js"
   },
@@ -11,5 +12,9 @@
   "description": "",
   "dependencies": {
     "@repo/typescript-config": "*"
+  },
+  "exports": {
+    "./types": "./src/index.ts",
+    "./portsAndUrl": "./src/portsAndUrl.ts"
   }
 }
