@@ -82,6 +82,8 @@ export type EngineApiMessageType = {
     data: {
         userId: string
     }
+} | {
+    type: "ENGINE_GET_MARKETS_LIST"
 };
 
 /**
@@ -123,9 +125,9 @@ export type ApiEngineMessageType = {
         user: UserInterface
     }
 } | {
-    type: "API_ORDER_CANCELLED",
+    type: "API_TAKE_MARKETS_LIST",
     data: {
-
+        markets: string[]
     }
 };
 

@@ -1,4 +1,5 @@
 import { RedisClientType } from "@redis/client";
+import { redisUrl } from "@repo/shared-types/portsAndUrl";
 import { DatabaseEngineMessageType } from "@repo/shared-types/types";
 import { Client } from "pg";
 import { createClient } from "redis";
@@ -17,7 +18,7 @@ export class DatabaseManager {
             password: "postgres",
             port: 5432,
         });
-        this.redisClient = createClient();
+        this.redisClient = createClient({ url: redisUrl });
         this.ohlcvViews = new Set();
 
         this.pgClient.connect();

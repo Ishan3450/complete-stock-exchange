@@ -2,6 +2,7 @@ import { createClient, RedisClientType } from 'redis';
 import { User } from './User';
 import WebSocket from 'ws';
 import { v4 as uuid } from "uuid";
+import { redisUrl } from '@repo/shared-types/portsAndUrl';
 
 export class UserManager {
     private static instance: UserManager;
@@ -9,7 +10,7 @@ export class UserManager {
     private users: Map<string, User>; // userId -> User class object
 
     private constructor() {
-        this.redisClient = createClient();
+        this.redisClient = createClient({ url: redisUrl });
         this.users = new Map();
         this.redisClient.connect();
     }

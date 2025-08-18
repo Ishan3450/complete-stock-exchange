@@ -1,8 +1,9 @@
 import { createClient } from "redis";
 import { Engine } from "./Engine";
+import { redisUrl } from "@repo/shared-types/portsAndUrl";
 
 async function main() {
-  const redisClient = createClient();
+  const redisClient = createClient({ url: redisUrl });
   await redisClient.connect();
   const engine = Engine.getInstance();
 
@@ -14,4 +15,4 @@ async function main() {
     }
   }
 }
-
+main()

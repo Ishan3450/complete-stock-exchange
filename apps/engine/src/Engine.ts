@@ -9,7 +9,7 @@ export class Engine {
     private users: Map<string, UserInterface>; // userId -> info
     private lastTradeId: number;
     // TODO: add trade type array containing globally happened trades for audit/log purpose
-    // trades: Trade[];
+    // trades: Map<Market, Trade>;
 
     /**
      * TODO: add snapshot mechanism
@@ -19,6 +19,14 @@ export class Engine {
         this.markets = new Map<string, OrderBook>();
         this.users = new Map<string, UserInterface>();
         this.lastTradeId = -1;
+        this._addDemoData();
+    }
+
+    private _addDemoData() {
+        this.markets.set("TATA_INR", new OrderBook("TATA", "INR"));
+        this.markets.set("SOL_USDC", new OrderBook("SOL", "USDC"));
+        this.markets.set("BTC_USDC", new OrderBook("BTC", "USDC"));
+        this.markets.set("LIC_INR", new OrderBook("LIC", "INR"));
     }
 
     public static getInstance() {
@@ -213,6 +221,13 @@ export class Engine {
                         })
                     }
                     break;
+                case "ENGINE_GET_MARKETS_LIST":
+                    await RedisManager.getInstance().publishMessage(clientId, {
+                        type: "API_TAKE_MARKETS_LIST",
+                        data: {
+                            markets: [...this.markets.keys()]
+                        }
+                    })
                 default:
                     break;
             }

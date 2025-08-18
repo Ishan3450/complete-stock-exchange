@@ -1,5 +1,6 @@
 import { createClient, RedisClientType } from 'redis';
 import { UserManager } from './UserManager';
+import { redisUrl } from '@repo/shared-types/portsAndUrl';
 
 
 export class SubscriptionManager {
@@ -9,7 +10,7 @@ export class SubscriptionManager {
     private userSubscriptions: Map<string, Set<string>>; // userId > list<channel>
 
     private constructor() {
-        this.redisClient = createClient();
+        this.redisClient = createClient({ url: redisUrl });
         this.redisClient.connect();
         this.subscriptions = new Map();
         this.userSubscriptions = new Map();

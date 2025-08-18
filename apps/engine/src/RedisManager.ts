@@ -1,12 +1,13 @@
 import { createClient, RedisClientType } from "redis";
 import { ApiEngineMessageType, DatabaseEngineMessageType, Error, WebsocketEngineMessageType } from "@repo/shared-types/types";
+import { redisUrl } from "@repo/shared-types/portsAndUrl";
 
 export class RedisManager {
   private static instance: RedisManager;
   private client: RedisClientType;
 
   private constructor() {
-    this.client = createClient();
+    this.client = createClient({ url: redisUrl });
     this.client.connect();
   }
 

@@ -1,11 +1,12 @@
 import { createClient } from "redis";
 import { DatabaseEngineMessageType } from "@repo/shared-types/types";
 import { DatabaseManager } from "./DatabaseManager";
+import { redisUrl } from "@repo/shared-types/portsAndUrl";
 
 
 async function main() {
     const dbManager = new DatabaseManager();
-    const redisClient = createClient();
+    const redisClient = createClient({ url: redisUrl });
     await redisClient.connect();
 
     while (true) {

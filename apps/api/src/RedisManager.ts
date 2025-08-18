@@ -1,6 +1,7 @@
 import { createClient, RedisClientType } from "redis";
 import { EngineApiMessageType, ApiEngineMessageType } from "@repo/shared-types/types";
 import { v4 as uuid } from 'uuid';
+import { redisUrl } from "@repo/shared-types/portsAndUrl";
 
 export class RedisManager {
 	private client: RedisClientType;
@@ -8,8 +9,8 @@ export class RedisManager {
 	private static instance: RedisManager;
 
 	private constructor() {
-		this.client = createClient();
-		this.publisher = createClient();
+		this.client = createClient({ url: redisUrl });
+		this.publisher = createClient({ url: redisUrl });
 		this.client.connect();
 		this.publisher.connect();
 	}
@@ -28,7 +29,7 @@ export class RedisManager {
 				this.client.unsubscribe(id);
 				resolve(JSON.parse(response));
 			});
-			this.publisher.lPush("messages", JSON.stringify({ clientId: id, message }))
+			this.publisher.lPush("engineMessages", JSON.stringify({ clientId: id, message }))
 		})
 	}
 }

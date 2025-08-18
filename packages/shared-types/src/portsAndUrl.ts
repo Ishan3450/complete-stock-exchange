@@ -6,3 +6,4 @@ export const apiPort = 3001;
 export const wsPort = 3002;
 export const apiUrl = `${httpHostUrl}:${apiPort}${baseUrl}`;
 export const wsUrl = `${wsHostUrl}:${wsPort}`;
+export const redisUrl = "redis://localhost:6379/0";

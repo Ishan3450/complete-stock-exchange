@@ -1,8 +1,9 @@
 "use client"
 
 import Container from "@/components/container";
+import MarketList from "@/components/market_list";
 import { wsUrl } from "@repo/shared-types/portsAndUrl";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function Home() {
   const ws = useRef<WebSocket | null>(null);
@@ -28,7 +29,7 @@ export default function Home() {
 
   return (
     <Container>
-      yoooo
+      <MarketList />
     </Container>
   );
 }

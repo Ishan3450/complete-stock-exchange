@@ -1,6 +1,7 @@
 import { createClient, RedisClientType } from "redis";
 import { Engine } from "../Engine";
 import { ApiEngineMessageType, Error, UserInterface } from "@repo/shared-types/types";
+import { redisUrl } from "@repo/shared-types/portsAndUrl";
 
 describe("Engine Tests", () => {
     let engine: Engine;
@@ -10,8 +11,8 @@ describe("Engine Tests", () => {
 
     beforeEach(async () => {
         engine = Engine.getInstance();
-        pub = createClient();
-        sub = createClient();
+        pub = createClient({ url: redisUrl });
+        sub = createClient({ url: redisUrl });
         await pub.connect();
         await sub.connect();
         engine.addMarket("TATA", "INR");
