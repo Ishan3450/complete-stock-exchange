@@ -1,5 +1,6 @@
 "use client"
 
+import OrderBook from "@/components/order_book";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -59,12 +60,14 @@ export default function MarketPage() {
                 </Card>
                 <Card className="p-5 h-full">
                     <Tabs defaultValue="account" className="w-[400px]">
-                        <TabsList>
-                            <TabsTrigger value="chart">Chart</TabsTrigger>
-                            <TabsTrigger value="trades">Trades</TabsTrigger>
+                        <TabsList className="py-5 px-1">
+                            <TabsTrigger className="p-4" value="chart">Chart</TabsTrigger>
+                            <TabsTrigger className="p-4" value="trades">Trades</TabsTrigger>
+                            <TabsTrigger className="p-4" value="book">Book</TabsTrigger>
                         </TabsList>
-                        <TabsContent value="chart">Make changes to your account here.</TabsContent>
-                        <TabsContent value="trades">Change your password here.</TabsContent>
+                        <TabsContent value="chart">Chart</TabsContent>
+                        <TabsContent value="trades">Trades</TabsContent>
+                        <TabsContent value="book"><OrderBook market={market}/></TabsContent>
                     </Tabs>
                 </Card>
             </div>
@@ -105,7 +108,7 @@ export default function MarketPage() {
                 {/* Total order value */}
                 <div className="grid gap-1 w-full items-center text-xl">
                     <span className="text-gray-400">Order Value</span>
-                    <span className="bg-gray-100 text-gray-600 p-3 rounded-lg">
+                    <span className="border text-gray-600 p-3 rounded-lg">
                         500 {side === "buy" ? splitted[1] : splitted[0]}
                     </span>
                 </div>
@@ -113,7 +116,7 @@ export default function MarketPage() {
                 {/* Do trade button */}
                 <Button
                     variant={"secondary"}
-                    className="h-12 text-xl text-gray-600 cursor-pointer mt-5">
+                    className="h-12 text-xl bg-gray-200 text-gray-600 cursor-pointer mt-5">
                     Trade
                 </Button>
             </Card>

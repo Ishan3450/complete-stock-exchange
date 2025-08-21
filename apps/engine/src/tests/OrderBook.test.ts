@@ -405,12 +405,12 @@ describe("OrderBook Tests", () => {
 
         expect(market.getDepth()).toStrictEqual({
             bids: {
-                105: 2,
-                103: 1
+                105: [7, 10],
+                103: [5, 5]
             },
             asks: {
-                110: 2,
-                112: 1
+                110: [5, 5],
+                112: [4, 9]
             }
         });
     });
@@ -479,5 +479,10 @@ describe("OrderBook Tests", () => {
         const user4Orders = market.getUserOpenOrders("user4");
         expect(user4Orders.bids).toEqual(expect.arrayContaining([]));
         expect(user4Orders.asks).toEqual(expect.arrayContaining([sellOrder2]));
+    });
+
+    test("Test overall open orders", () => {
+        // TODO: write this :)
+        throw new Error("Write this!!")
     })
 });

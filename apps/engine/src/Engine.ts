@@ -228,6 +228,15 @@ export class Engine {
                             markets: [...this.markets.keys()]
                         }
                     })
+                    break;
+                case "ENGINE_GET_OPEN_ORDERS_COUNT":
+                    const { market } = message.data;
+
+                    await RedisManager.getInstance().publishMessage(clientId, {
+                        type: "MM_OPEN_ORDERS_COUNT",
+                        data: this.markets.get(market)?.getOpenOrdersCount() ?? { totalAsks: 0, totalBids: 0 }
+                    })
+                    break;
                 default:
                     break;
             }
@@ -394,16 +403,14 @@ export class Engine {
 
     public addMarket(baseAsset: string, quoteAsset: string): void {
         const marketName = `${baseAsset}_${quoteAsset}`;
-        if (this.markets.has(marketName)) {
-            throw new Error(`Market ${marketName} already exists`);
+        if (!this.markets.has(marketName)) {
+            this.markets.set(marketName, new OrderBook(baseAsset, quoteAsset));
         }
-        this.markets.set(marketName, new OrderBook(baseAsset, quoteAsset));
     }
 
     public removeMarket(marketName: string): void {
-        if (!this.markets.has(marketName)) {
-            throw new Error(`Market ${marketName} doesn't exists`);
+        if (this.markets.has(marketName)) {
+            this.markets.delete(marketName);
         }
-        this.markets.delete(marketName);
     }
 }

@@ -73,9 +73,9 @@ export type EngineApiMessageType = {
 } | {
     type: "ENGINE_ADD_BALANCE",
     data: {
-        userId: string;
-        currency: string;
-        amount: number;
+        userId: string,
+        currency: string,
+        amount: number,
     }
 } | {
     type: "ENGINE_GET_USER_PORTFOLIO",
@@ -84,6 +84,11 @@ export type EngineApiMessageType = {
     }
 } | {
     type: "ENGINE_GET_MARKETS_LIST"
+} | {
+    type: "ENGINE_GET_OPEN_ORDERS_COUNT",
+    data: {
+        market: string
+    }
 };
 
 /**
@@ -111,8 +116,8 @@ export type ApiEngineMessageType = {
 } | {
     type: "API_DEPTH",
     data: {
-        asks: Record<number, number>,
-        bids: Record<number, number>,
+        asks: Record<number, number[]>,
+        bids: Record<number, number[]>,
     }
 } | {
     type: "API_USER_CREATED",
@@ -130,6 +135,17 @@ export type ApiEngineMessageType = {
         markets: string[]
     }
 };
+
+/**
+ * Type: From Engine to MarketMaker
+ */
+export type MarketMakerEngineMessageType = {
+    type: "MM_OPEN_ORDERS_COUNT",
+    data: {
+        totalBids: number,
+        totalAsks: number,
+    }
+}
 
 
 /**
@@ -160,8 +176,8 @@ export type WebsocketEngineMessageType = {
     type: "DEPTH",
     data: {
         market: string,
-        bids: Record<number, number>,
-        asks: Record<number, number>,
+        bids: Record<number, number[]>,
+        asks: Record<number, number[]>,
     }
 } | {
     type: "TICKER_UPDATE",

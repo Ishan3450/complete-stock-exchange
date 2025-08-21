@@ -145,27 +145,52 @@ export class OrderBook {
      * Returns the current aggregated depth of the order book.
      *
      * The depth is represented as an object containing two properties: bids and asks.
-     * Each property is a record where the keys are price levels and the values are the count of orders at that price.
+     * Each property is a record where the keys are price levels and the values are the count of order quantities at that price.
      *
      * Example return value:
      * {
-     *   bids: { 100: 2, 99: 1 },
-     *   asks: { 101: 3, 102: 1 }
+     *   bids: { 100: [2, 3], 99: [1, 1] }, (In Descending)
+     *   asks: { 101: [3, 3], 102: [1, 4] }, (In Ascending)
      * }
      * 
-     * This means there are 2 bids at price 100, 1 bid at price 99,
-     * 3 asks at price 101, and 1 ask at price 102.
+     * This means there are 2 bids quantity at price 100 and 3 total <= 100, 1 bids quantity at price 99,
+     * 3 asks quantity at price 101, and 1 ask quantity at price 102 and 4 total having quantity with price <= 102.
      */
-    public getDepth(): { bids: Record<number, number>, asks: Record<number, number> } {
+    public getDepth() {
         this.bids = this.bids.sort((a, b) => b.price - a.price);
         this.asks = this.asks.sort((a, b) => a.price - b.price);
 
-        const aggregatedDepth: { bids: Record<number, number>, asks: Record<number, number> } = {
+        const aggregatedDepth: { bids: Record<number, number[]>, asks: Record<number, number[]> } = {
             bids: {},
             asks: {}
         };
-        this.bids.forEach(bid => aggregatedDepth.bids[bid.price] = (aggregatedDepth.bids[bid.price] ?? 0) + 1)
-        this.asks.forEach(ask => aggregatedDepth.asks[ask.price] = (aggregatedDepth.asks[ask.price] ?? 0) + 1)
+        let totalBidsQuantity: number = this.bids.reduce((acc, bid) => acc + (bid.quantity - bid.filled), 0);
+        let totalAsksQuantity: number = 0;
+
+        this.bids.forEach((bid) => {
+            const remainingQuantityToFill = bid.quantity - bid.filled;
+
+            if (!aggregatedDepth.bids[bid.price]) {
+                aggregatedDepth.bids[bid.price] = [0, 0];
+            }
+            aggregatedDepth.bids[bid.price] = [
+                (aggregatedDepth.bids[bid.price]![0] ?? 0) + remainingQuantityToFill,
+                totalBidsQuantity,
+            ];
+            totalBidsQuantity -= remainingQuantityToFill;
+        });
+        this.asks.forEach((ask) => {
+            const remainingQuantityToFill = ask.quantity - ask.filled;
+            totalAsksQuantity += remainingQuantityToFill;
+
+            if (!aggregatedDepth.asks[ask.price]) {
+                aggregatedDepth.asks[ask.price] = [0, 0];
+            }
+            aggregatedDepth.asks[ask.price] = [
+                (aggregatedDepth.asks[ask.price]![0] ?? 0) + remainingQuantityToFill,
+                totalAsksQuantity,
+            ];
+        });
         return aggregatedDepth;
     }
 
@@ -173,6 +198,13 @@ export class OrderBook {
         return {
             bids: this.bids.filter(bid => bid.userId == userId),
             asks: this.asks.filter(ask => ask.userId == userId),
+        }
+    }
+
+    public getOpenOrdersCount(): {totalBids: number, totalAsks: number} {
+        return {
+            totalBids: this.bids.length,
+            totalAsks: this.asks.length,
         }
     }
 }
