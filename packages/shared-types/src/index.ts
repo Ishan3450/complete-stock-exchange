@@ -78,6 +78,13 @@ export type EngineApiMessageType = {
         amount: number,
     }
 } | {
+    type: "ENGINE_ADD_HOLDINGS",
+    data: {
+        userId: string,
+        baseAsset: string,
+        quantity: number,
+    }
+} | {
     type: "ENGINE_GET_USER_PORTFOLIO",
     data: {
         userId: string
@@ -85,10 +92,7 @@ export type EngineApiMessageType = {
 } | {
     type: "ENGINE_GET_MARKETS_LIST"
 } | {
-    type: "ENGINE_GET_OPEN_ORDERS_COUNT",
-    data: {
-        market: string
-    }
+    type: "ENGINE_MARKET_STATS",
 };
 
 /**
@@ -140,11 +144,12 @@ export type ApiEngineMessageType = {
  * Type: From Engine to MarketMaker
  */
 export type MarketMakerEngineMessageType = {
-    type: "MM_OPEN_ORDERS_COUNT",
+    type: "MM_MARKET_STATS",
     data: {
+        market: string,
         totalBids: number,
         totalAsks: number,
-    }
+    }[]
 }
 
 
@@ -173,14 +178,19 @@ export type DatabaseEngineMessageType = {
  * Type: From Engine to WS
  */
 export type WebsocketEngineMessageType = {
-    type: "DEPTH",
+    type: "WS_DEPTH",
     data: {
         market: string,
         bids: Record<number, number[]>,
         asks: Record<number, number[]>,
     }
-} | {
-    type: "TICKER_UPDATE",
+};
+
+/**
+ * Type: From DB to WS
+ */
+export type WebsocketDatabaseMessageType = {
+    type: "WS_TICKER_UPDATE",
     data: {
         market: string,
         open: number,
@@ -189,17 +199,25 @@ export type WebsocketEngineMessageType = {
         close: number,
         volume: number,
     }
+} | {
+    type: "WS_OHLCV_DATA",
+    data: {
+        market: string,
+        bucket: string,
+        data: {
+            open: number,
+            high: number,
+            low: number,
+            close: number,
+            volume: number,
+        }[],
+    }
 };
 
 /**
  * Type: From WS to Frontend
  */
-export type FrontendWebsocketMessageType = WebsocketEngineMessageType | {
-    type: "TAKE_USERID",
-    data: {
-        userId: string
-    }
-};
+export type FrontendWebsocketMessageType = WebsocketEngineMessageType;
 
 /**
  * Type: From Frontend to WS

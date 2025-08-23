@@ -481,8 +481,66 @@ describe("OrderBook Tests", () => {
         expect(user4Orders.asks).toEqual(expect.arrayContaining([sellOrder2]));
     });
 
-    test("Test overall open orders", () => {
-        // TODO: write this :)
-        throw new Error("Write this!!")
+    test("Test overall open orders count", () => {
+        const buyOrder1: Order = {
+            price: 105,
+            quantity: 2,
+            side: "buy",
+            userId: "user1",
+            orderId: 1,
+            filled: 0,
+        };
+        const buyOrder2: Order = {
+            price: 103,
+            quantity: 5,
+            side: "buy",
+            userId: "user2",
+            orderId: 2,
+            filled: 0,
+        };
+        const buyOrder3: Order = {
+            price: 106,
+            quantity: 3,
+            side: "buy",
+            userId: "user2",
+            orderId: 6,
+            filled: 0,
+        };
+        const sellOrder1: Order = {
+            price: 100,
+            quantity: 4,
+            side: "sell",
+            userId: "user3",
+            orderId: 3,
+            filled: 0,
+        };
+        const sellOrder2: Order = {
+            price: 112,
+            quantity: 4,
+            side: "sell",
+            userId: "user4",
+            orderId: 4,
+            filled: 0,
+        };
+        const sellOrder3: Order = {
+            price: 111,
+            quantity: 2,
+            side: "sell",
+            userId: "user2",
+            orderId: 5,
+            filled: 0,
+        };
+
+        market.addOrder(buyOrder1);
+        market.addOrder(buyOrder2);
+        market.addOrder(buyOrder3);
+        market.addOrder(sellOrder1);
+        market.addOrder(sellOrder2);
+        market.addOrder(sellOrder3);
+
+        expect(market.getOpenOrdersCount()).toEqual({
+            totalBids: 2,
+            totalAsks: 2,
+        });
     })
 });

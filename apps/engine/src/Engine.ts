@@ -22,6 +22,7 @@ export class Engine {
         this._addDemoData();
     }
 
+    // TODO: move this part into market maker component
     private _addDemoData() {
         this.markets.set("TATA_INR", new OrderBook("TATA", "INR"));
         this.markets.set("SOL_USDC", new OrderBook("SOL", "USDC"));
@@ -176,7 +177,7 @@ export class Engine {
                         })
                     }
                     break;
-                case "ENGINE_ADD_BALANCE":
+                case "ENGINE_ADD_BALANCE": // currently just for the use in market maker component
                     try {
                         const { userId, currency, amount } = message.data;
                         const user = this.users.get(userId);
@@ -194,6 +195,14 @@ export class Engine {
                             type: "Error",
                             errorMsg: "Something went wrong"
                         })
+                    }
+                    break;
+                case "ENGINE_ADD_HOLDINGS": // currently for market maker only, so not adding more complexity now
+                    const { userId, baseAsset, quantity } = message.data;
+
+                    const user = this.users.get(userId);
+                    if (user) {
+                        user.holdings[baseAsset] = (user.holdings[baseAsset] ?? 0) + quantity;
                     }
                     break;
                 case "ENGINE_GET_USER_PORTFOLIO":
@@ -229,13 +238,14 @@ export class Engine {
                         }
                     })
                     break;
-                case "ENGINE_GET_OPEN_ORDERS_COUNT":
-                    const { market } = message.data;
-
+                case "ENGINE_MARKET_STATS":
                     await RedisManager.getInstance().publishMessage(clientId, {
-                        type: "MM_OPEN_ORDERS_COUNT",
-                        data: this.markets.get(market)?.getOpenOrdersCount() ?? { totalAsks: 0, totalBids: 0 }
-                    })
+                        type: "MM_MARKET_STATS",
+                        data: [...this.markets.keys()].map(market => ({
+                            market: market,
+                            ...(this.markets.get(market)?.getOpenOrdersCount() ?? { totalAsks: 0, totalBids: 0 })
+                        }))
+                    });
                     break;
                 default:
                     break;
@@ -391,8 +401,8 @@ export class Engine {
         if (!orderBook) return;
 
         const depth = orderBook.getDepth();
-        await RedisManager.getInstance().publishMessage(`ws_depth@${market}`, {
-            type: "DEPTH",
+        await RedisManager.getInstance().publishMessage(market, {
+            type: "WS_DEPTH",
             data: {
                 market,
                 asks: depth.asks,

@@ -2,18 +2,29 @@
 
 import OrderBook from "@/components/order_book";
 import { Button } from "@/components/ui/button";
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { getWebSocket } from "@/lib/websocket";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function MarketPage() {
     const { market } = useParams<{ market: string }>();
     const [side, useSide] = useState<'buy' | 'sell'>('buy');
+    const ws = useRef<WebSocket | null>(null);
 
     useEffect(() => {
+        if (!ws.current) {
+            ws.current = getWebSocket();
+        }
 
+        ws.current.send(JSON.stringify({
+            type: "SUBSCRIBE",
+            data: {
+                subscriptionName: market
+            }
+        }));
     }, []);
 
     const splitted = market.split("_");
@@ -67,7 +78,7 @@ export default function MarketPage() {
                         </TabsList>
                         <TabsContent value="chart">Chart</TabsContent>
                         <TabsContent value="trades">Trades</TabsContent>
-                        <TabsContent value="book"><OrderBook market={market}/></TabsContent>
+                        <TabsContent value="book"><OrderBook market={market} /></TabsContent>
                     </Tabs>
                 </Card>
             </div>

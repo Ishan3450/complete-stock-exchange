@@ -1,7 +1,7 @@
 import { RedisClientType } from "@redis/client";
 import { redisUrl } from "@repo/shared-types/portsAndUrl";
-import { DatabaseEngineMessageType } from "@repo/shared-types/types";
-import { Client } from "pg";
+import { DatabaseEngineMessageType, WebsocketDatabaseMessageType } from "@repo/shared-types/types";
+import { Client, QueryResult } from "pg";
 import { createClient } from "redis";
 
 
@@ -70,30 +70,68 @@ export class DatabaseManager {
 
     private async _createMaterializedViewOHLCV(tableName: string, bucketType: string) {
         const viewName = `${tableName}_${bucketType}`;
-        this.ohlcvViews.add(viewName);
 
         const sql = `
-            CREATE MATERIALIZED VIEW IF NOT EXISTS "${viewName}" AS
-            SELECT
-                date_trunc('${bucketType}', timestamp) as bucket,
-                FIRST(price, timestamp) AS open,
-                MAX(price) AS high,
-                MIN(price) AS low,
-                LAST(price, timestamp) AS close,
-                SUM(quantity) AS volume
-            FROM "${tableName}"
-            GROUP BY bucket
-            ORDER BY bucket;
+        CREATE MATERIALIZED VIEW IF NOT EXISTS "${viewName}" AS
+        SELECT
+            date_trunc('${bucketType}', timestamp) as bucket,
+            FIRST(price, timestamp) AS open,
+            MAX(price) AS high,
+            MIN(price) AS low,
+            LAST(price, timestamp) AS close,
+            SUM(quantity) AS volume
+        FROM "${tableName}"
+        GROUP BY bucket
+        ORDER BY bucket;
         `;
         await this.pgClient.query(sql);
+        this.ohlcvViews.add(viewName);
     }
 
     private async _refreshOhlcvViews() {
         this.ohlcvViews?.forEach(async (view) => {
+            const splitted = view.split("_");
+
             await this.pgClient.query(`REFRESH MATERIALIZED VIEW ${view}`);
 
-            const { rows } = await this.pgClient.query(`SELECT * FROM ${view}`);
-            await this.redisClient.publish(view.toString(), JSON.stringify(rows));
+            const { rows, rowCount } = await this.pgClient.query<{
+                open: number;
+                high: number;
+                low: number;
+                close: number;
+                volume: number;
+            }>(`SELECT open, high, low, close, volume FROM ${view}`);
+
+            /**
+             * TODO: here I am sending 2 different publish messages, instead convert this into batch
+             */
+
+            const viewData: WebsocketDatabaseMessageType = {
+                type: "WS_OHLCV_DATA",
+                data: {
+                    market: `${splitted[0]}_${splitted[1]}`,
+                    bucket: splitted[2]!,
+                    data: rows
+                }
+            }
+            await this.redisClient.publish(view.toString(), JSON.stringify(viewData));
+
+            // udpated ticker data
+            if (view.endsWith("_hour") && rows[0]) {
+                const { open, high, low, close, volume } = rows[0];
+                const dataToSend: WebsocketDatabaseMessageType = {
+                    type: "WS_TICKER_UPDATE",
+                    data: {
+                        market: view.substring(0, view.length - 5),
+                        open,
+                        high,
+                        low,
+                        close,
+                        volume,
+                    }
+                }
+                await this.redisClient.publish(view.toString(), JSON.stringify(dataToSend))
+            }
         })
     }
 }

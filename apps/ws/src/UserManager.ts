@@ -22,16 +22,9 @@ export class UserManager {
         return this.instance;
     }
 
-    public addUser(ws: WebSocket): void {
-        const userId: string = uuid();
+    public addUser(userId: string, ws: WebSocket): void {
         const user = new User(userId, ws);
         this.users.set(userId, user);
-
-        // immediately respond back the user with the ws user id
-        user.emit({
-            type: "TAKE_USERID",
-            data: { userId }
-        });
         console.log(`User added ${userId}`);
     }
 

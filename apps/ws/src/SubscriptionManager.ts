@@ -36,6 +36,8 @@ export class SubscriptionManager {
         if (this.subscriptions.get(subscriptionName)?.size == 1) {
             this.redisClient.subscribe(subscriptionName, this._pubSubCallbackHandler)
         }
+
+        console.log(`${userId} subscribed to ${subscriptionName}`);
     }
 
     public unsubscribe(subscriptionName: string, userId: string) {
@@ -51,12 +53,12 @@ export class SubscriptionManager {
                 this.userSubscriptions.delete(userId);
             }
         }
+        console.log(`${userId} unsubscribed to ${subscriptionName}`);
     }
 
     private _pubSubCallbackHandler(message: string, channel: string) {
-        const parsedMessage = JSON.parse(message);
         this.subscriptions.get(channel)?.forEach(userId => {
-            UserManager.getInstance().getUser(userId).emit(parsedMessage);
+            UserManager.getInstance().getUser(userId).emit(message);
         })
     }
 

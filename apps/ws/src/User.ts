@@ -16,7 +16,7 @@ export class User {
 
             if (parsed.type === "SUBSCRIBE") {
                 SubscriptionManager.getInstance().subscribe(parsed.data.subscriptionName, this.userId);
-            } else {
+            } else if (parsed.type === "UNSUBSCRIBE") {
                 SubscriptionManager.getInstance().unsubscribe(parsed.data.subscriptionName, this.userId);
             }
         })
@@ -27,7 +27,7 @@ export class User {
         })
     }
 
-    public emit(message: FrontendWebsocketMessageType): void {
-        this.ws.send(JSON.stringify(message));
+    public emit(message: string): void {
+        this.ws.send(message);
     }
 }
