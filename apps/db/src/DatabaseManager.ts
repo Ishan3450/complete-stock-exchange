@@ -24,14 +24,18 @@ export class DatabaseManager {
         this.pgClient.connect();
         this.redisClient.connect();
 
-        setInterval(this._refreshOhlcvViews, 60 * 1000);
+        // setInterval(async () => {
+        //     await this._refreshOhlcvViews();
+        // }, 30 * 1000);
     }
 
-    public process(message: DatabaseEngineMessageType) {
+    public async process(message: DatabaseEngineMessageType) {
         switch (message.type) {
             case "DB_ADD_TRADES":
                 const { trades, marketName } = message.data;
-                trades.forEach(trade => this._addTrade(trade, marketName));
+                for (const trade of trades) {
+                    await this._addTrade(trade, marketName);
+                }
                 break;
             case "DB_ORDER_UPDATE":
                 break;
@@ -46,6 +50,7 @@ export class DatabaseManager {
         await this._createTableIfNotExists(marketName);
         const insertQuery = `INSERT INTO ${marketName} (price, timestamp, quantity) VALUES($1, $2, $3)`;
         await this.pgClient.query(insertQuery, [trades.price, trades.timestamp, trades.quantity]);
+        await this._refreshOhlcvViews();
     }
 
     private async _createTableIfNotExists(tableName: string): Promise<void> {
@@ -89,7 +94,7 @@ export class DatabaseManager {
     }
 
     private async _refreshOhlcvViews() {
-        this.ohlcvViews?.forEach(async (view) => {
+        for (const view of this.ohlcvViews) {
             const splitted = view.split("_");
 
             await this.pgClient.query(`REFRESH MATERIALIZED VIEW ${view}`);
@@ -114,7 +119,7 @@ export class DatabaseManager {
                     data: rows
                 }
             }
-            await this.redisClient.publish(view.toString(), JSON.stringify(viewData));
+            await this.redisClient.publish(view.toString().toUpperCase(), JSON.stringify(viewData));
 
             // udpated ticker data
             if (view.endsWith("_hour") && rows[0]) {
@@ -130,8 +135,8 @@ export class DatabaseManager {
                         volume,
                     }
                 }
-                await this.redisClient.publish(view.toString(), JSON.stringify(dataToSend))
+                await this.redisClient.publish(view.substring(0, view.lastIndexOf("_")).toUpperCase(), JSON.stringify(dataToSend))
             }
-        })
+        }
     }
 }

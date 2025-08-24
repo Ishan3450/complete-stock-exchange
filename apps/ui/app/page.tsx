@@ -9,7 +9,9 @@ export default function Home() {
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    ws.current = getWebSocket();
+    getWebSocket().then((wsRes) => {
+      ws.current = wsRes;
+    });
   }, []);
 
   return (

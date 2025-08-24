@@ -1,11 +1,14 @@
 "use client"
 
-import OrderBook from "@/components/order_book";
+import OrderBookDepth from "@/components/order_book";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getWebSocket } from "@/lib/websocket";
+import { apiUrl } from "@repo/shared-types/portsAndUrl";
+import { WebsocketDatabaseMessageType, WebsocketEngineMessageType } from "@repo/shared-types/types";
+import axios from "axios";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -13,18 +16,61 @@ export default function MarketPage() {
     const { market } = useParams<{ market: string }>();
     const [side, useSide] = useState<'buy' | 'sell'>('buy');
     const ws = useRef<WebSocket | null>(null);
+    const [openOrdersDepth, useOpenOrdersDepth] = useState<{
+        bids: Record<number, number[]>,
+        asks: Record<number, number[]>,
+    }>({ bids: {}, asks: {} });
+    const [tickerData, useTickerData] = useState<{
+        open: number,
+        high: number,
+        low: number,
+        close: number,
+        volume: number,
+    }>({
+        open: 0,
+        high: 0,
+        low: 0,
+        close: 0,
+        volume: 0,
+    });
 
     useEffect(() => {
         if (!ws.current) {
-            ws.current = getWebSocket();
+            getWebSocket().then((wsRes) => {
+                ws.current = wsRes;
+                ws.current.send(JSON.stringify({
+                    type: "SUBSCRIBE",
+                    data: {
+                        subscriptionName: market
+                    }
+                }));
+
+                ws.current.onmessage = (message) => {
+                    const data: WebsocketEngineMessageType | WebsocketDatabaseMessageType = JSON.parse(message.data);
+
+                    if (data.type === "WS_DEPTH") {
+                        useOpenOrdersDepth({
+                            bids: data.data.bids,
+                            asks: data.data.asks,
+                        })
+                    }
+                    if (data.type === "WS_TICKER_UPDATE") {
+                        useTickerData({
+                            open: data.data.open,
+                            high: data.data.high,
+                            low: data.data.low,
+                            close: data.data.close,
+                            volume: data.data.volume,
+                        });
+                    }
+                }
+            });
         }
 
-        ws.current.send(JSON.stringify({
-            type: "SUBSCRIBE",
-            data: {
-                subscriptionName: market
-            }
-        }));
+        axios.get(`${apiUrl}/depth/get?market=${market}`).then((res) => {
+            useOpenOrdersDepth(res.data.data);
+        });
+
     }, []);
 
     const splitted = market.split("_");
@@ -42,35 +88,35 @@ export default function MarketPage() {
                             {/* Last Price */}
                             <div className="flex flex-col items-start">
                                 <span className="text-xs text-gray-500">Last Trade Price</span>
-                                <span className="text-lg font-semibold text-green-500">
-                                    254 {splitted[1]}
+                                <span className="text-lg font-semibold text-green-600">
+                                    {tickerData.close} {splitted[1]}
                                 </span>
                             </div>
 
                             {/* 24h High */}
                             <div className="flex flex-col items-start">
                                 <span className="text-xs text-gray-500">24h High</span>
-                                <span className="text-lg font-semibold text-green-400">312 {splitted[1]}</span>
+                                <span className="text-lg font-semibold text-green-600">{tickerData.high} {splitted[1]}</span>
                             </div>
 
                             {/* 24h Low */}
                             <div className="flex flex-col items-start">
                                 <span className="text-xs text-gray-500">24h Low</span>
-                                <span className="text-lg font-semibold text-red-400">126 {splitted[1]}</span>
+                                <span className="text-lg font-semibold text-red-400">{tickerData.low} {splitted[1]}</span>
                             </div>
 
                             {/* 24h Volume */}
                             <div className="flex flex-col items-start">
                                 <span className="text-xs text-gray-500">
-                                    24h Volume ({splitted[1]})
+                                    24h Volume ({splitted[0]})
                                 </span>
-                                <span className="text-lg font-semibold">501123 {splitted[1]}</span>
+                                <span className="text-lg font-semibold">{tickerData.volume} {splitted[0]}</span>
                             </div>
                         </div>
                     </CardHeader>
                 </Card>
-                <Card className="p-5 h-full">
-                    <Tabs defaultValue="account" className="w-[400px]">
+                <Card className="p-5 h-full overflow-scroll">
+                    <Tabs defaultValue="account">
                         <TabsList className="py-5 px-1">
                             <TabsTrigger className="p-4" value="chart">Chart</TabsTrigger>
                             <TabsTrigger className="p-4" value="trades">Trades</TabsTrigger>
@@ -78,7 +124,9 @@ export default function MarketPage() {
                         </TabsList>
                         <TabsContent value="chart">Chart</TabsContent>
                         <TabsContent value="trades">Trades</TabsContent>
-                        <TabsContent value="book"><OrderBook market={market} /></TabsContent>
+                        <TabsContent value="book">
+                            <OrderBookDepth assets={splitted} openOrdersDepth={openOrdersDepth} />
+                        </TabsContent>
                     </Tabs>
                 </Card>
             </div>

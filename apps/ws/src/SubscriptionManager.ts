@@ -34,7 +34,9 @@ export class SubscriptionManager {
         this.userSubscriptions.get(userId)?.add(subscriptionName);
 
         if (this.subscriptions.get(subscriptionName)?.size == 1) {
-            this.redisClient.subscribe(subscriptionName, this._pubSubCallbackHandler)
+            this.redisClient.subscribe(subscriptionName, (channel, message) => {
+                this._pubSubCallbackHandler(channel, message);
+            })
         }
 
         console.log(`${userId} subscribed to ${subscriptionName}`);
