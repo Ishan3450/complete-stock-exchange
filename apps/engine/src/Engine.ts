@@ -28,6 +28,7 @@ export class Engine {
         this.markets.set("SOL_USDC", new OrderBook("SOL", "USDC"));
         this.markets.set("BTC_USDC", new OrderBook("BTC", "USDC"));
         this.markets.set("LIC_INR", new OrderBook("LIC", "INR"));
+        this.markets.set("NEW_TEST", new OrderBook("NEW", "TEST"));
     }
 
     public static getInstance() {

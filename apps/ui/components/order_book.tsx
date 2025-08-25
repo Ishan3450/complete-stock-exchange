@@ -1,4 +1,5 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DECIMAL_BASE } from "@/lib/common";
 
 type OrderBookProps = {
     assets: string[],
@@ -21,9 +22,9 @@ export default function OrderBookDepth({ assets, openOrdersDepth }: OrderBookPro
             <TableBody>
                 {Object.entries(openOrdersDepth.bids).map(([price, values], idx) => (
                     <TableRow key={idx}>
-                        <TableCell className="text-green-600 font-semibold">{price}</TableCell>
-                        <TableCell>{values[0]}</TableCell>
-                        <TableCell>{values[1]}</TableCell>
+                        <TableCell className="text-green-600 font-semibold">{Number(price) / DECIMAL_BASE}</TableCell>
+                        <TableCell>{values[0] / DECIMAL_BASE}</TableCell>
+                        <TableCell>{values[1] / DECIMAL_BASE}</TableCell>
                     </TableRow>
                 ))}
                 <TableRow>
@@ -32,9 +33,9 @@ export default function OrderBookDepth({ assets, openOrdersDepth }: OrderBookPro
                 </TableRow>
                 {Object.entries(openOrdersDepth.asks).map(([price, values], idx) => (
                     <TableRow key={idx}>
-                        <TableCell className="text-red-500 font-semibold">{price}</TableCell>
-                        <TableCell>{values[0]}</TableCell>
-                        <TableCell>{values[1]}</TableCell>
+                        <TableCell className="text-red-500 font-semibold">{Number(price) / DECIMAL_BASE}</TableCell>
+                        <TableCell>{values[0] / DECIMAL_BASE}</TableCell>
+                        <TableCell>{values[1] / DECIMAL_BASE}</TableCell>
                     </TableRow>
                 ))}
             </TableBody>

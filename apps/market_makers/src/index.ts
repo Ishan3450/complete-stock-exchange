@@ -2,6 +2,7 @@ import { redisUrl } from "@repo/shared-types/portsAndUrl";
 import { MarketMakerEngineMessageType } from "@repo/shared-types/types";
 import { createClient } from "redis";
 
+const DECIMAL_BASE = 100;
 const MAX_ALLOWED = 15;
 const USER_IDS = ["99996", "99997", "99998", "99999"];
 const redisClient = createClient({ url: redisUrl });
@@ -66,9 +67,9 @@ async function _addBid(marketName: string) {
     const assets = marketName.split("_");
 
     // first decide amount and quantity
-    const userIdx = Math.floor(Math.random() * USER_IDS.length);
-    const amount = Math.floor(Math.random() * 100);
-    const quantity = Math.floor(Math.random() * 10);
+    const userIdx = getRandomUserIdx();
+    const amount = getRandomNumber(100);
+    const quantity = getRandomNumber(10);
 
     // onramp balance in user's account
     await redisClient.lPush("engineMessages", JSON.stringify({
@@ -97,8 +98,8 @@ async function _addAsk(marketName: string) {
     const assets = marketName.split("_");
 
     // first decide quantity
-    const userIdx = Math.floor(Math.random() * USER_IDS.length);
-    const quantity = Math.floor(Math.random() * 10);
+    const userIdx = getRandomUserIdx();
+    const quantity = getRandomNumber(10);
 
     // onramp holdings in user's account
     await redisClient.lPush("engineMessages", JSON.stringify({
@@ -118,9 +119,17 @@ async function _addAsk(marketName: string) {
         clientId: "_",
         message: {
             type: "ENGINE_CREATE_ORDER",
-            data: { market: marketName, price: Math.floor(Math.random() * 100), quantity: quantity, side: "sell", userId: USER_IDS[userIdx] }
+            data: { market: marketName, price: getRandomNumber(100), quantity: quantity, side: "sell", userId: USER_IDS[userIdx] }
         }
     }));
+}
+
+function getRandomUserIdx() {
+    return Math.floor(Math.random() * USER_IDS.length)
+}
+
+function getRandomNumber(multiplier: number): number {
+    return Math.floor((Math.random() * multiplier) * DECIMAL_BASE);
 }
 
 setTimeout(() => {

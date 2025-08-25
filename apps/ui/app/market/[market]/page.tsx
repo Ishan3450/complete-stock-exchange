@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DECIMAL_BASE } from "@/lib/common";
 import { getWebSocket } from "@/lib/websocket";
 import { apiUrl } from "@repo/shared-types/portsAndUrl";
 import { WebsocketDatabaseMessageType, WebsocketEngineMessageType } from "@repo/shared-types/types";
@@ -89,20 +90,20 @@ export default function MarketPage() {
                             <div className="flex flex-col items-start">
                                 <span className="text-xs text-gray-500">Last Trade Price</span>
                                 <span className="text-lg font-semibold text-green-600">
-                                    {tickerData.close} {splitted[1]}
+                                    {tickerData.close / DECIMAL_BASE} {splitted[1]}
                                 </span>
                             </div>
 
                             {/* 24h High */}
                             <div className="flex flex-col items-start">
                                 <span className="text-xs text-gray-500">24h High</span>
-                                <span className="text-lg font-semibold text-green-600">{tickerData.high} {splitted[1]}</span>
+                                <span className="text-lg font-semibold text-green-600">{tickerData.high / DECIMAL_BASE} {splitted[1]}</span>
                             </div>
 
                             {/* 24h Low */}
                             <div className="flex flex-col items-start">
                                 <span className="text-xs text-gray-500">24h Low</span>
-                                <span className="text-lg font-semibold text-red-400">{tickerData.low} {splitted[1]}</span>
+                                <span className="text-lg font-semibold text-red-400">{tickerData.low / DECIMAL_BASE} {splitted[1]}</span>
                             </div>
 
                             {/* 24h Volume */}
@@ -110,7 +111,7 @@ export default function MarketPage() {
                                 <span className="text-xs text-gray-500">
                                     24h Volume ({splitted[0]})
                                 </span>
-                                <span className="text-lg font-semibold">{tickerData.volume} {splitted[0]}</span>
+                                <span className="text-lg font-semibold">{tickerData.volume / DECIMAL_BASE} {splitted[0]}</span>
                             </div>
                         </div>
                     </CardHeader>

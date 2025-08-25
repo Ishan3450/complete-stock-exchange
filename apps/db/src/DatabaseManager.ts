@@ -122,8 +122,8 @@ export class DatabaseManager {
             await this.redisClient.publish(view.toString().toUpperCase(), JSON.stringify(viewData));
 
             // udpated ticker data
-            if (view.endsWith("_hour") && rows[0]) {
-                const { open, high, low, close, volume } = rows[0];
+            if (view.endsWith("_day") && rows.length >= 1) {
+                const { open, high, low, close, volume } = rows[rows.length - 1]!;
                 const dataToSend: WebsocketDatabaseMessageType = {
                     type: "WS_TICKER_UPDATE",
                     data: {
