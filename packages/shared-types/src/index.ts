@@ -104,6 +104,16 @@ export type FrontendApiMessageType = {
 } | {
     type: "SUCCESS",
     userId: number,
+} | {
+    type: "TICKER",
+    success: boolean,
+    data?: {
+        open: number,
+        high: number,
+        low: number,
+        close: number,
+        volume: number,
+    }
 }
 
 

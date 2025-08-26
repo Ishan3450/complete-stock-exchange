@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { DECIMAL_BASE } from "@/lib/common";
+import { getFormattedValue } from "@/lib/common";
 import { getWebSocket } from "@/lib/websocket";
 import { apiUrl } from "@repo/shared-types/portsAndUrl";
-import { WebsocketDatabaseMessageType, WebsocketEngineMessageType } from "@repo/shared-types/types";
+import { FrontendApiMessageType, WebsocketDatabaseMessageType, WebsocketEngineMessageType } from "@repo/shared-types/types";
 import axios from "axios";
+import { ChevronLeft } from "lucide-react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -68,6 +70,12 @@ export default function MarketPage() {
             });
         }
 
+        axios.get(`${apiUrl}/ticker/get?market=${market}`).then((res) => {
+            const response: FrontendApiMessageType = res.data;
+            if (response.type === "TICKER" && response.success) {
+                useTickerData(response.data!);
+            }
+        });
         axios.get(`${apiUrl}/depth/get?market=${market}`).then((res) => {
             useOpenOrdersDepth(res.data.data);
         });
@@ -81,6 +89,9 @@ export default function MarketPage() {
                 {/* Market name and ticker information */}
                 <Card>
                     <CardHeader className="flex items-center justify-between">
+                        <Link href={"/"} className="text-gray-500 cursor-pointer p-2">
+                            <ChevronLeft size={25} />
+                        </Link>
                         <CardTitle className="text-2xl w-[40%]">
                             <span>{splitted[0]}</span>
                             <span className="text-gray-400"> ({splitted[1]})</span>
@@ -90,20 +101,20 @@ export default function MarketPage() {
                             <div className="flex flex-col items-start">
                                 <span className="text-xs text-gray-500">Last Trade Price</span>
                                 <span className="text-lg font-semibold text-green-600">
-                                    {tickerData.close / DECIMAL_BASE} {splitted[1]}
+                                    {getFormattedValue(tickerData.close)} {splitted[1]}
                                 </span>
                             </div>
 
                             {/* 24h High */}
                             <div className="flex flex-col items-start">
                                 <span className="text-xs text-gray-500">24h High</span>
-                                <span className="text-lg font-semibold text-green-600">{tickerData.high / DECIMAL_BASE} {splitted[1]}</span>
+                                <span className="text-lg font-semibold text-green-600">{getFormattedValue(tickerData.high)} {splitted[1]}</span>
                             </div>
 
                             {/* 24h Low */}
                             <div className="flex flex-col items-start">
                                 <span className="text-xs text-gray-500">24h Low</span>
-                                <span className="text-lg font-semibold text-red-400">{tickerData.low / DECIMAL_BASE} {splitted[1]}</span>
+                                <span className="text-lg font-semibold text-red-400">{getFormattedValue(tickerData.low)} {splitted[1]}</span>
                             </div>
 
                             {/* 24h Volume */}
@@ -111,7 +122,7 @@ export default function MarketPage() {
                                 <span className="text-xs text-gray-500">
                                     24h Volume ({splitted[0]})
                                 </span>
-                                <span className="text-lg font-semibold">{tickerData.volume / DECIMAL_BASE} {splitted[0]}</span>
+                                <span className="text-lg font-semibold">{getFormattedValue(tickerData.volume)} {splitted[0]}</span>
                             </div>
                         </div>
                     </CardHeader>

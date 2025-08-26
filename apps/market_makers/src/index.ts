@@ -135,4 +135,4 @@ function getRandomNumber(multiplier: number): number {
 setTimeout(() => {
     init();
     setInterval(main, 30 * 1000);
-}, 10000);
+}, 30 * 1000);
