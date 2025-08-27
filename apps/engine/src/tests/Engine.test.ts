@@ -22,8 +22,6 @@ describe("Engine Tests", () => {
                 type: "ENGINE_CREATE_USER",
                 data: {
                     userId: "1",
-                    userName: "User 1",
-                    userPassword: "Pwd"
                 }
             }
         });
@@ -33,8 +31,6 @@ describe("Engine Tests", () => {
                 type: "ENGINE_CREATE_USER",
                 data: {
                     userId: "2",
-                    userName: "User 2",
-                    userPassword: "Pwd"
                 }
             }
         });

@@ -26,8 +26,6 @@ export interface Error {
 
 export interface UserInterface {
     userId: string;
-    userName: string;
-    userPassword: string;
     balance: Record<string, number>; // currency -> amount
     lockedBalance: Record<string, number>; // currency -> amount
     holdings: Record<string, number>; // base_asset -> quantity
@@ -67,8 +65,6 @@ export type EngineApiMessageType = {
     type: "ENGINE_CREATE_USER",
     data: {
         userId: string,
-        userName: string,
-        userPassword: string,
     }
 } | {
     type: "ENGINE_ADD_BALANCE",

@@ -1,5 +1,7 @@
+import { ApiEngineMessageType } from "@repo/shared-types/types";
 import { Router, Request, Response } from "express";
 import { Client } from "pg";
+import { RedisManager } from "../RedisManager";
 
 export const authRouter = Router();
 
@@ -36,7 +38,9 @@ authRouter.post("/signup", async (req: Request, res: Response) => {
             [username, email, password]
         );
 
-        res.json({ type: "SUCCESS", userId: result.rows[0].id });
+        const userId: string = String(result.rows[0].id);
+        await createUserInEngine(userId);
+        res.json({ type: "SUCCESS", userId });
     } catch (error) {
         console.error(error);
         res.json({ type: "ERROR", message: "Server error" });
@@ -87,4 +91,13 @@ async function createTableIfNotExists() {
         );
     `;
     await client.query(query);
+}
+
+async function createUserInEngine(userId: string) {
+    await RedisManager.getInstance().sendAndAwait({
+        type: "ENGINE_CREATE_USER",
+        data: {
+            userId
+        }
+    })
 }

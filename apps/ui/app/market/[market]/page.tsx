@@ -1,6 +1,7 @@
 "use client"
 
 import OrderBookDepth from "@/components/order_book";
+import Portfolio from "@/components/portfolio";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getFormattedValue } from "@/lib/common";
 import { getWebSocket } from "@/lib/websocket";
 import { apiUrl } from "@repo/shared-types/portsAndUrl";
-import { FrontendApiMessageType, WebsocketDatabaseMessageType, WebsocketEngineMessageType } from "@repo/shared-types/types";
+import { FrontendApiMessageType, UserInterface, WebsocketDatabaseMessageType, WebsocketEngineMessageType } from "@repo/shared-types/types";
 import axios from "axios";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
@@ -36,6 +37,7 @@ export default function MarketPage() {
         close: 0,
         volume: 0,
     });
+    const [user, useUser] = useState<UserInterface | null>(null);
 
     useEffect(() => {
         if (!ws.current) {
@@ -78,6 +80,11 @@ export default function MarketPage() {
         });
         axios.get(`${apiUrl}/depth/get?market=${market}`).then((res) => {
             useOpenOrdersDepth(res.data.data);
+        });
+        axios.post(`${apiUrl}/portfolio/get`, {
+            userId: localStorage.getItem("uid")
+        }).then((res) => {
+            useUser(res.data.data.user);
         });
 
     }, []);
@@ -133,11 +140,15 @@ export default function MarketPage() {
                             <TabsTrigger className="p-4" value="chart">Chart</TabsTrigger>
                             <TabsTrigger className="p-4" value="trades">Trades</TabsTrigger>
                             <TabsTrigger className="p-4" value="book">Book</TabsTrigger>
+                            <TabsTrigger className="p-4" value="portfolio">Portfolio</TabsTrigger>
                         </TabsList>
                         <TabsContent value="chart">Chart</TabsContent>
                         <TabsContent value="trades">Trades</TabsContent>
                         <TabsContent value="book">
                             <OrderBookDepth assets={splitted} openOrdersDepth={openOrdersDepth} />
+                        </TabsContent>
+                        <TabsContent value="portfolio">
+                            <Portfolio userPortfolio={user} />
                         </TabsContent>
                     </Tabs>
                 </Card>

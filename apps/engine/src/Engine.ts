@@ -150,12 +150,10 @@ export class Engine {
                     break;
                 case "ENGINE_CREATE_USER":
                     try {
-                        const { userId, userName, userPassword } = message.data;
+                        const { userId } = message.data;
 
                         this.users.set(userId, {
                             userId,
-                            userName,
-                            userPassword,
                             balance: { INR: 1000, USD: 5.5 },
                             lockedBalance: {},
                             holdings: { TATA: 50, ETH: 2 },
@@ -185,7 +183,7 @@ export class Engine {
                         if (!user) {
                             await RedisManager.getInstance().publishMessage(clientId, {
                                 type: "Error",
-                                errorMsg: "No user found !!"
+                                errorMsg: "No user found during add balance !!"
                             })
                             return;
                         }
@@ -213,7 +211,7 @@ export class Engine {
                         if (!user) {
                             await RedisManager.getInstance().publishMessage(clientId, {
                                 type: "Error",
-                                errorMsg: "No user found !!"
+                                errorMsg: "No user found to get the portfolio !!"
                             })
                             return;
                         }

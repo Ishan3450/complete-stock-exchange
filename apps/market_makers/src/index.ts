@@ -19,8 +19,6 @@ async function init() {
                 type: "ENGINE_CREATE_USER",
                 data: {
                     userId: USER_ID,
-                    userName: "Market Maker",
-                    userPassword: "liquidater :)"
                 }
             }
         }));
