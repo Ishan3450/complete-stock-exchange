@@ -38,6 +38,8 @@ export default function MarketPage() {
         volume: 0,
     });
     const [user, useUser] = useState<UserInterface | null>(null);
+    const [price, usePrice] = useState<string>("");
+    const [quantity, useQuantity] = useState<string>("");
 
     useEffect(() => {
         if (!ws.current) {
@@ -88,6 +90,15 @@ export default function MarketPage() {
         });
 
     }, []);
+
+    async function handleAddOrder() {
+        /**
+         * To handle:
+         * 
+         * convert price and market into number and handle !isNaN and if succeed then
+         * Math.floor(Number(price)*100) likewise for quantity.
+         */
+    }
 
     const splitted = market.split("_");
     return (
@@ -175,30 +186,49 @@ export default function MarketPage() {
                  */}
                 <div className="text-gray-400 flex justify-between">
                     <span>Balance</span>
-                    <span>- {side === "sell" ? splitted[0] : splitted[1]}</span>
+                    <span>
+                        {side === "sell" ? (
+                            `${user?.holdings[splitted[0]] ?? 0} - ${splitted[0]}`
+                        ) : (
+                            `${user?.balance[splitted[1]] ?? 0} - ${splitted[1]}`
+                        )}
+                    </span>
                 </div>
 
                 <div className="grid gap-1 w-full items-center text-xl">
                     <span className="text-gray-400">Price</span>
-                    <Input id="picture" type="text" />
+                    <Input
+                        id="picture"
+                        type="text"
+                        value={price}
+                        onChange={(e) => usePrice(e.target.value)}
+                    />
                 </div>
                 <div className="grid gap-1 w-full items-center text-xl">
                     <span className="text-gray-400">Quantity</span>
-                    <Input id="picture" type="text" />
+                    <Input
+                        id="picture"
+                        type="text"
+                        value={quantity}
+                        onChange={(e) => useQuantity(e.target.value)}
+                    />
                 </div>
 
                 {/* Total order value */}
                 <div className="grid gap-1 w-full items-center text-xl">
                     <span className="text-gray-400">Order Value</span>
                     <span className="border text-gray-600 p-3 rounded-lg">
-                        500 {side === "buy" ? splitted[1] : splitted[0]}
+                        {!isNaN(Number(price)) && !isNaN(Number(quantity)) && price !== "" && quantity !== ""
+                            ? `${(parseFloat(Number(price).toFixed(2)) * parseFloat(Number(quantity).toFixed(2))).toFixed(2)} ${splitted[1]}`
+                            : ""}
                     </span>
                 </div>
 
                 {/* Do trade button */}
                 <Button
-                    variant={"secondary"}
-                    className="h-12 text-xl bg-gray-200 text-gray-600 cursor-pointer mt-5">
+                    className="h-12 text-xl cursor-pointer mt-5"
+                    onClick={handleAddOrder}
+                >
                     Trade
                 </Button>
             </Card>
