@@ -20,8 +20,8 @@ export interface Fill {
 }
 
 export interface Error {
-    type: "Error",
-    errorMsg: string,
+    type: "Error";
+    errorMsg: string;
 }
 
 export interface UserInterface {
@@ -32,6 +32,12 @@ export interface UserInterface {
     lockedHolding: Record<string, number>; // base_asset -> quantity
 }
 
+export interface Trade {
+    price: number;
+    timestamp: string;
+    quantity: number;
+    side: 'buy' | 'sell';
+}
 
 // ==================================================================
 
@@ -92,12 +98,9 @@ export type EngineApiMessageType = {
 };
 
 /**
- * Type: From api to frontend
+ * Type: From API to frontend
  */
-export type FrontendApiMessageType = {
-    type: "ERROR",
-    message: string
-} | {
+export type FrontendApiMessageType = Error | {
     type: "SUCCESS",
     userId: number,
 } | {
@@ -120,7 +123,7 @@ export type ApiEngineMessageType = {
     type: "API_ORDER_PLACED",
     data: {
         orderId: number,
-        fills: Fill[],
+        fills: Omit<Fill, "fillOwnerId">[],
         executedQuantity: number,
     }
 } | {
@@ -175,7 +178,7 @@ export type DatabaseEngineMessageType = {
 } | {
     type: "DB_ADD_TRADES",
     data: {
-        trades: { timestamp: string, price: number, quantity: number }[],
+        trades: Trade[],
         marketName: string,
     }
 };

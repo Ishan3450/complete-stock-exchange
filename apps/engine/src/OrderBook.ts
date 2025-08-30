@@ -141,6 +141,7 @@ export class OrderBook {
         return false;
     }
 
+    // TODO: improve the return structure of this method see ui code to see the complexity for this simple thing
     /**
      * Returns the current aggregated depth of the order book.
      *
@@ -191,6 +192,17 @@ export class OrderBook {
                 totalAsksQuantity,
             ];
         });
+
+        // const test = {
+        //     bids: Object.keys(aggregatedDepth.bids).map(Number).sort().map((price, idx) => (
+        //         { price, quantity: aggregatedDepth.bids[price]![0], total: aggregatedDepth.bids[price]![1] }
+        //     )),
+        //     asks: Object.keys(aggregatedDepth.asks).map(Number).sort().map((price, idx) => (
+        //         { price, quantity: aggregatedDepth.asks[price]![0], total: aggregatedDepth.asks[price]![1] }
+        //     ))
+        // }
+        // console.log(test);
+
         return aggregatedDepth;
     }
 
@@ -201,7 +213,7 @@ export class OrderBook {
         }
     }
 
-    public getOpenOrdersCount(): {totalBids: number, totalAsks: number} {
+    public getOpenOrdersCount(): { totalBids: number, totalAsks: number } {
         return {
             totalBids: this.bids.length,
             totalAsks: this.asks.length,

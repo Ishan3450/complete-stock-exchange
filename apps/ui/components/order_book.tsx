@@ -28,7 +28,8 @@ export default function OrderBookDepth({ assets, openOrdersDepth }: OrderBookPro
                     </TableRow>
                 ))}
                 <TableRow>
-                    <TableCell colSpan={3}>
+                    <TableCell colSpan={3} className="text-lg font-semibold">
+                        Market Spread: 
                     </TableCell>
                 </TableRow>
                 {Object.entries(openOrdersDepth.asks).map(([price, values], idx) => (

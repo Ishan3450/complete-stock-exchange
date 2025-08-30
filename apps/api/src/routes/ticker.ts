@@ -1,17 +1,6 @@
 import { Request, Response, Router } from "express";
-import { Client } from "pg";
+import { dbClient } from "../dbClient";
 
-const dbClient = new Client({
-    user: "postgres",
-    host: "localhost",
-    database: "exchange_db",
-    password: "postgres",
-    port: 5432,
-});
-
-dbClient.connect()
-    .then(() => console.log("Connected to Postgres"))
-    .catch(err => console.error("Failed to connect to Postgres:", err));
 
 export const tickerRouter = Router();
 

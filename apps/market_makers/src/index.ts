@@ -2,7 +2,6 @@ import { redisUrl } from "@repo/shared-types/portsAndUrl";
 import { MarketMakerEngineMessageType } from "@repo/shared-types/types";
 import { createClient } from "redis";
 
-const DECIMAL_BASE = 100;
 const MAX_ALLOWED = 15;
 const USER_IDS = ["99996", "99997", "99998", "99999"];
 const redisClient = createClient({ url: redisUrl });
@@ -127,7 +126,7 @@ function getRandomUserIdx() {
 }
 
 function getRandomNumber(multiplier: number): number {
-    return Math.floor((Math.random() * multiplier) * DECIMAL_BASE);
+    return Number((Math.random() * multiplier).toFixed(2));
 }
 
 setTimeout(() => {

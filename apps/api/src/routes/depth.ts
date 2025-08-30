@@ -9,7 +9,7 @@ depthRouter.get("/get", async (req: Request, res: Response) => {
 
     if (!market) {
         return res.status(400).json({
-            type: "ERROR",
+            type: "Error",
             errorMsg: "Market parameter is required and must be a string."
         });
     }

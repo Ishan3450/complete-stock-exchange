@@ -38,8 +38,8 @@ export default function Signup() {
             localStorage.setItem("uid", data.userId.toString());
             toast.success("Successful");
             router.push("/");
-        } else {
-            toast.error(data.message);
+        } else if(data.type === "Error") {
+            toast.error(data.errorMsg);
         }
     };
 

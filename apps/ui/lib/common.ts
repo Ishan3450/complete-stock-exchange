@@ -1,5 +1,3 @@
-export const DECIMAL_BASE = 100;
-
 export function getFormattedValue(value: number) {
-    return (value / DECIMAL_BASE);
+    return Number(value).toFixed(2)
 }

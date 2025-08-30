@@ -1,1 +1,1 @@
-{"root":["./src/RedisManager.ts","./src/index.ts","./src/routes/auth.ts","./src/routes/depth.ts","./src/routes/kline.ts","./src/routes/order.ts","./src/routes/portfolio.ts","./src/routes/ticker.ts","./src/routes/trades.ts"],"version":"5.8.3"}
+{"root":["./src/RedisManager.ts","./src/dbClient.ts","./src/index.ts","./src/routes/auth.ts","./src/routes/depth.ts","./src/routes/kline.ts","./src/routes/order.ts","./src/routes/portfolio.ts","./src/routes/ticker.ts","./src/routes/trades.ts"],"version":"5.8.3"}

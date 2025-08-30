@@ -8,8 +8,8 @@ portfolioRouter.post("/get", async (req: Request, res: Response) => {
     const { userId } = req.body;
 
     if (!userId) {
-        res.json({
-            type: "ERROR",
+        return res.json({
+            type: "Error",
             message: "No user id found to get the portfolio !!",
         })
     }

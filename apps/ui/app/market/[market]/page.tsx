@@ -2,6 +2,7 @@
 
 import OrderBookDepth from "@/components/order_book";
 import Portfolio from "@/components/portfolio";
+import { Trades } from "@/components/trades";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,17 +10,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getFormattedValue } from "@/lib/common";
 import { getWebSocket } from "@/lib/websocket";
 import { apiUrl } from "@repo/shared-types/portsAndUrl";
-import { FrontendApiMessageType, UserInterface, WebsocketDatabaseMessageType, WebsocketEngineMessageType } from "@repo/shared-types/types";
-import axios from "axios";
+import {
+    ApiEngineMessageType,
+    FrontendApiMessageType,
+    Trade,
+    UserInterface,
+    WebsocketDatabaseMessageType,
+    WebsocketEngineMessageType
+} from "@repo/shared-types/types";
+import axios, { AxiosResponse } from "axios";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+
 
 export default function MarketPage() {
+    const router = useRouter();
     const { market } = useParams<{ market: string }>();
     const [side, useSide] = useState<'buy' | 'sell'>('buy');
     const ws = useRef<WebSocket | null>(null);
+    const userId = useRef<string | null>(null);
     const [openOrdersDepth, useOpenOrdersDepth] = useState<{
         bids: Record<number, number[]>,
         asks: Record<number, number[]>,
@@ -40,8 +52,17 @@ export default function MarketPage() {
     const [user, useUser] = useState<UserInterface | null>(null);
     const [price, usePrice] = useState<string>("");
     const [quantity, useQuantity] = useState<string>("");
+    const [loading, useLoading] = useState<boolean>(false);
+    const [trades, useTrades] = useState<Trade[]>([]);
 
     useEffect(() => {
+        const uid = localStorage.getItem("uid");
+        if (!uid) {
+            router.push("/signin")
+            toast.warning("Unauthorized access !!");
+            return;
+        }
+        userId.current = uid;
         if (!ws.current) {
             getWebSocket().then((wsRes) => {
                 ws.current = wsRes;
@@ -83,21 +104,62 @@ export default function MarketPage() {
         axios.get(`${apiUrl}/depth/get?market=${market}`).then((res) => {
             useOpenOrdersDepth(res.data.data);
         });
-        axios.post(`${apiUrl}/portfolio/get`, {
-            userId: localStorage.getItem("uid")
-        }).then((res) => {
-            useUser(res.data.data.user);
-        });
-
+        getUserPortfolio();
+        getMarketTrades();
     }, []);
 
+    function getUserPortfolio() {
+        axios.post(`${apiUrl}/portfolio/get`, {
+            userId: userId.current
+        }).then((res) => {
+            useUser(res.data.data?.user);
+        });
+    }
+    async function getMarketTrades() {
+        const response = await axios.get(`${apiUrl}/trades/get?market=${market}`);
+        useTrades(response.data);
+    }
+
     async function handleAddOrder() {
-        /**
-         * To handle:
-         * 
-         * convert price and market into number and handle !isNaN and if succeed then
-         * Math.floor(Number(price)*100) likewise for quantity.
-         */
+        useLoading(true);
+        if (!areInputsValid()) {
+            return;
+        }
+        const formattedPrice = Number(price);
+        const formattedQuantity = Number(quantity);
+
+        // quantity, price, market, side, userId
+        const { data }: AxiosResponse<ApiEngineMessageType | FrontendApiMessageType> = await axios.post(`${apiUrl}/order/add`, {
+            quantity: formattedQuantity,
+            price: formattedPrice,
+            market: market,
+            side: side,
+            userId: userId.current
+        });
+
+        console.log(data);
+
+        if (data.type === "Error") {
+            toast.error(data.errorMsg);
+            useLoading(false);
+            return;
+        }
+        if (data.type === "API_ORDER_PLACED" && data.data.executedQuantity > 0) {
+            /**
+             * PRE: before below TODO order trades things must be implemented.
+             * 
+             * TODO: in future make a route to see the order based on the order id
+             * and here if this condition succeeeds then redirect the user to that route.
+             */
+        }
+        toast.success("Order added successfully !!")
+
+        getUserPortfolio();
+        useLoading(false);
+    }
+
+    function areInputsValid() {
+        return !isNaN(Number(price)) && !isNaN(Number(quantity)) && price !== "" && quantity !== "";
     }
 
     const splitted = market.split("_");
@@ -154,12 +216,23 @@ export default function MarketPage() {
                             <TabsTrigger className="p-4" value="portfolio">Portfolio</TabsTrigger>
                         </TabsList>
                         <TabsContent value="chart">Chart</TabsContent>
-                        <TabsContent value="trades">Trades</TabsContent>
+                        <TabsContent value="trades">
+                            <Trades trades={trades} assets={splitted} />
+                        </TabsContent>
                         <TabsContent value="book">
                             <OrderBookDepth assets={splitted} openOrdersDepth={openOrdersDepth} />
                         </TabsContent>
                         <TabsContent value="portfolio">
-                            <Portfolio userPortfolio={user} />
+                            {user && <Portfolio userPortfolio={user} />}
+                            {!user && (
+                                <div className="p-5 text-lg bg-gray-100 my-2 rounded-lg">
+                                    Please{" "}
+                                    <Link href={"/signin"} className="text-blue-500 hover:underline">signin</Link>{" "}
+                                    or{" "}
+                                    <Link href={"/signup"} className="text-blue-500 hover:underline">signup</Link>{" "}
+                                    to see your portfolio.
+                                </div>
+                            )}
                         </TabsContent>
                     </Tabs>
                 </Card>
@@ -169,13 +242,13 @@ export default function MarketPage() {
                 <div className="bg-gray-100 flex justify-between rounded-lg cursor-pointer font-semibold">
                     <span
                         className={`px-4 py-5 rounded-lg text-center w-full hover:text-green-500 ${side === 'buy' ? 'bg-green-200 text-green-500' : ''}`}
-                        onClick={() => useSide("buy")}
+                        onClick={() => !loading && useSide("buy")}
                     >
                         Buy
                     </span>
                     <span
                         className={`px-4 py-5 rounded-lg text-center w-full hover:text-red-400 ${side === 'sell' ? 'bg-red-200 text-red-400' : ''}`}
-                        onClick={() => useSide("sell")}
+                        onClick={() => !loading && useSide("sell")}
                     >
                         Sell
                     </span>
@@ -188,9 +261,9 @@ export default function MarketPage() {
                     <span>Balance</span>
                     <span>
                         {side === "sell" ? (
-                            `${user?.holdings[splitted[0]] ?? 0} - ${splitted[0]}`
+                            `${getFormattedValue(user?.holdings[splitted[0]] ?? 0)} ${splitted[0]}`
                         ) : (
-                            `${user?.balance[splitted[1]] ?? 0} - ${splitted[1]}`
+                            `${getFormattedValue(user?.balance[splitted[1]] ?? 0)} ${splitted[1]}`
                         )}
                     </span>
                 </div>
@@ -198,19 +271,21 @@ export default function MarketPage() {
                 <div className="grid gap-1 w-full items-center text-xl">
                     <span className="text-gray-400">Price</span>
                     <Input
-                        id="picture"
+                        id="price"
                         type="text"
                         value={price}
                         onChange={(e) => usePrice(e.target.value)}
+                        disabled={loading}
                     />
                 </div>
                 <div className="grid gap-1 w-full items-center text-xl">
                     <span className="text-gray-400">Quantity</span>
                     <Input
-                        id="picture"
+                        id="quantity"
                         type="text"
                         value={quantity}
                         onChange={(e) => useQuantity(e.target.value)}
+                        disabled={loading}
                     />
                 </div>
 
@@ -218,7 +293,7 @@ export default function MarketPage() {
                 <div className="grid gap-1 w-full items-center text-xl">
                     <span className="text-gray-400">Order Value</span>
                     <span className="border text-gray-600 p-3 rounded-lg">
-                        {!isNaN(Number(price)) && !isNaN(Number(quantity)) && price !== "" && quantity !== ""
+                        {areInputsValid()
                             ? `${(parseFloat(Number(price).toFixed(2)) * parseFloat(Number(quantity).toFixed(2))).toFixed(2)} ${splitted[1]}`
                             : ""}
                     </span>
@@ -227,9 +302,12 @@ export default function MarketPage() {
                 {/* Do trade button */}
                 <Button
                     className="h-12 text-xl cursor-pointer mt-5"
+                    disabled={!user || !areInputsValid() || loading}
                     onClick={handleAddOrder}
                 >
-                    Trade
+                    {
+                        user ? "Trade" : "Signin or signup to trade"
+                    }
                 </Button>
             </Card>
         </div>

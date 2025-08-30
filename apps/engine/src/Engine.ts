@@ -8,8 +8,6 @@ export class Engine {
     private markets: Map<string, OrderBook>; // base_quote -> orderbook
     private users: Map<string, UserInterface>; // userId -> info
     private lastTradeId: number;
-    // TODO: add trade type array containing globally happened trades for audit/log purpose
-    // trades: Map<Market, Trade>;
 
     /**
      * TODO: add snapshot mechanism
@@ -28,7 +26,6 @@ export class Engine {
         this.markets.set("SOL_USDC", new OrderBook("SOL", "USDC"));
         this.markets.set("BTC_USDC", new OrderBook("BTC", "USDC"));
         this.markets.set("LIC_INR", new OrderBook("LIC", "INR"));
-        this.markets.set("NEW_TEST", new OrderBook("NEW", "TEST"));
     }
 
     public static getInstance() {
@@ -59,7 +56,11 @@ export class Engine {
                         const { executedQuantity, fills, orderId } = this._createOrder(quantity, price, market, side, userId);
                         await RedisManager.getInstance().publishMessage(clientId, {
                             type: "API_ORDER_PLACED",
-                            data: { executedQuantity, fills, orderId }
+                            data: {
+                                executedQuantity,
+                                fills: fills.map(({ fillOwnerId, ...rest }) => rest),
+                                orderId
+                            }
                         });
                     } catch (error: any) {
                         console.log(error);
@@ -114,13 +115,6 @@ export class Engine {
                             }
                         }
 
-                        // NOTE: cancel order will be followed by get user portfolio
-                        this.process({
-                            clientId, message: {
-                                type: "ENGINE_GET_USER_PORTFOLIO",
-                                data: { userId }
-                            }
-                        })
                         this._wsUpdateDepthAndSend(market);
                     } catch (error: any) {
                         console.log(error);
@@ -154,7 +148,7 @@ export class Engine {
 
                         this.users.set(userId, {
                             userId,
-                            balance: { INR: 1000, USD: 5.5 },
+                            balance: { INR: 10000, USD: 5.5 },
                             lockedBalance: {},
                             holdings: { TATA: 50, ETH: 2 },
                             lockedHolding: {},
@@ -273,7 +267,7 @@ export class Engine {
 
         this._updateUserFundsOrHoldings(executedQuantity, fills, price, baseAsset, quoteAsset, side, userId);
         this._updateDbOrders(newOrder, fills); // update order and fills matched with that order
-        this._addDbTrades(fills, market); // add all the fills/trades happened during matching
+        this._addDbTrades(fills, market, side); // add all the fills/trades happened during matching
         this._wsUpdateDepthAndSend(market);
         // this._updateWsTicker();
 
@@ -287,6 +281,7 @@ export class Engine {
         }
         if (side == "buy") {
             const amount = quantity * price;
+
             if ((user.balance[quoteAsset] ?? 0) < amount) {
                 throw new Error("Insufficient balance to buy !!");
             }
@@ -383,13 +378,18 @@ export class Engine {
             }
         )
     }
-    private _addDbTrades(fills: Fill[], marketName: string): void {
+    private _addDbTrades(fills: Fill[], marketName: string, side: "buy" | "sell"): void {
         RedisManager.getInstance().pushMessageToQueue(
             "db_processor",
             {
                 type: "DB_ADD_TRADES",
                 data: {
-                    trades: fills.map(fill => ({ timestamp: new Date().toISOString(), price: fill.price, quantity: fill.quantity })),
+                    trades: fills.map(fill => ({
+                        timestamp: new Date().toISOString(),
+                        price: fill.price,
+                        quantity: fill.quantity,
+                        side: side === "buy" ? "sell" : "buy"
+                    })),
                     marketName,
                 }
             }

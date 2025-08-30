@@ -1,7 +1,7 @@
 import { RedisClientType } from "@redis/client";
 import { redisUrl } from "@repo/shared-types/portsAndUrl";
-import { DatabaseEngineMessageType, WebsocketDatabaseMessageType } from "@repo/shared-types/types";
-import { Client, QueryResult } from "pg";
+import { DatabaseEngineMessageType, Trade, WebsocketDatabaseMessageType } from "@repo/shared-types/types";
+import { Client } from "pg";
 import { createClient } from "redis";
 
 
@@ -46,10 +46,10 @@ export class DatabaseManager {
         }
     }
 
-    private async _addTrade(trades: { timestamp: string, price: number, quantity: number }, marketName: string): Promise<void> {
+    private async _addTrade(trade: Trade, marketName: string): Promise<void> {
         await this._createTableIfNotExists(marketName);
-        const insertQuery = `INSERT INTO ${marketName} (price, timestamp, quantity) VALUES($1, $2, $3)`;
-        await this.pgClient.query(insertQuery, [trades.price, trades.timestamp, trades.quantity]);
+        const insertQuery = `INSERT INTO ${marketName} (price, timestamp, quantity, side) VALUES($1, $2, $3, $4)`;
+        await this.pgClient.query(insertQuery, [trade.price, trade.timestamp, trade.quantity, trade.side]);
         await this._refreshOhlcvViews();
     }
 
@@ -59,7 +59,8 @@ export class DatabaseManager {
             CREATE TABLE IF NOT EXISTS ${tableName} (
                 price           NUMERIC(10,2)   NOT NULL,
                 timestamp       TIMESTAMPTZ     NOT NULL,
-                quantity        NUMERIC(10,2)   NOT NULL
+                quantity        NUMERIC(10,2)   NOT NULL,
+                side            VARCHAR         NOT NULL
             );
         `;
         await this.pgClient.query(query);
