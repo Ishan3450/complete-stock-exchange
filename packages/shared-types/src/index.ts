@@ -37,6 +37,9 @@ export interface Trade {
     timestamp: string;
     quantity: number;
     side: 'buy' | 'sell';
+    fillOwnerId: string;
+    marketOrderId: number;
+    tradeId: number;
 }
 
 // ==================================================================

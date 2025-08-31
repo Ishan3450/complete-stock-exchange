@@ -1,1 +1,1 @@
-{"root":["./src/Engine.ts","./src/OrderBook.ts","./src/RedisManager.ts","./src/index.ts","./src/tests/Engine.test.ts","./src/tests/OrderBook.test.ts"],"version":"5.8.3"}
+{"root":["./src/Engine.ts","./src/OrderBook.ts","./src/RedisManager.ts","./src/dbClient.ts","./src/index.ts","./src/tests/Engine.test.ts","./src/tests/OrderBook.test.ts"],"version":"5.8.3"}

@@ -8,7 +8,7 @@ tradesRouter.get('/get', async (req: Request, res: Response) => {
     const { rows } = await dbClient.query(`
         SELECT 
             * 
-        FROM ${market}
+        FROM ${market}_trades
         ORDER BY timestamp DESC 
         LIMIT 100
     `);

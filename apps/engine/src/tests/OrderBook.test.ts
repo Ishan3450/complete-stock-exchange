@@ -8,7 +8,7 @@ describe("OrderBook Tests", () => {
         market = new OrderBook("TATA", "INR");
     })
 
-    test("Test add order in fresh market", () => {
+    test("Test add order in fresh market", async () => {
         const buyOrder: Order = {
             price: 100,
             quantity: 2,
@@ -26,17 +26,17 @@ describe("OrderBook Tests", () => {
             filled: 0,
         }
 
-        expect(market.addOrder(buyOrder)).toStrictEqual({
+        expect(await market.addOrder(buyOrder)).toStrictEqual({
             executedQuantity: 0,
             fills: []
         });
-        expect(market.addOrder(sellOrder)).toStrictEqual({
+        expect(await market.addOrder(sellOrder)).toStrictEqual({
             executedQuantity: 0,
             fills: []
         });
     });
 
-    test("Test add back to back buy orders", () => {
+    test("Test add back to back buy orders", async () => {
         const buyOrder1: Order = {
             price: 100,
             quantity: 2,
@@ -54,17 +54,17 @@ describe("OrderBook Tests", () => {
             filled: 0,
         }
 
-        expect(market.addOrder(buyOrder1)).toStrictEqual({
+        expect(await market.addOrder(buyOrder1)).toStrictEqual({
             executedQuantity: 0,
             fills: []
         });
-        expect(market.addOrder(buyOrder2)).toStrictEqual({
+        expect(await market.addOrder(buyOrder2)).toStrictEqual({
             executedQuantity: 0,
             fills: []
         });
     });
 
-    test("Test add back to back sell orders", () => {
+    test("Test add back to back sell orders", async () => {
         const sellOrder1: Order = {
             price: 100,
             quantity: 2,
@@ -82,17 +82,17 @@ describe("OrderBook Tests", () => {
             filled: 0,
         }
 
-        expect(market.addOrder(sellOrder1)).toStrictEqual({
+        expect(await market.addOrder(sellOrder1)).toStrictEqual({
             executedQuantity: 0,
             fills: []
         });
-        expect(market.addOrder(sellOrder2)).toStrictEqual({
+        expect(await market.addOrder(sellOrder2)).toStrictEqual({
             executedQuantity: 0,
             fills: []
         });
     });
 
-    test("Test buy order matching", () => {
+    test("Test buy order matching", async () => {
         // adding sell order to be matched with the buy order
         const sellOrder1: Order = {
             price: 100,
@@ -110,8 +110,8 @@ describe("OrderBook Tests", () => {
             orderId: 2,
             filled: 0,
         };
-        market.addOrder(sellOrder1);
-        market.addOrder(sellOrder2);
+        await market.addOrder(sellOrder1);
+        await market.addOrder(sellOrder2);
 
         const buyOrder1: Order = {
             price: 103,
@@ -121,7 +121,7 @@ describe("OrderBook Tests", () => {
             orderId: 3,
             filled: 0,
         };
-        const buyOrder1Result = market.addOrder(buyOrder1);
+        const buyOrder1Result = await market.addOrder(buyOrder1);
         expect(buyOrder1Result).toStrictEqual({
             executedQuantity: 1,
             fills: [{
@@ -143,7 +143,7 @@ describe("OrderBook Tests", () => {
             orderId: 4,
             filled: 0,
         }
-        const buyOrder2Result = market.addOrder(buyOrder2);
+        const buyOrder2Result = await market.addOrder(buyOrder2);
         expect(buyOrder2Result).toStrictEqual({
             executedQuantity: 3,
             fills: [{
@@ -165,7 +165,7 @@ describe("OrderBook Tests", () => {
         expect(sellOrder2.filled).toEqual(2);
     });
 
-    test("Test sell order matching", () => {
+    test("Test sell order matching", async () => {
         // adding buy orders to be matched with the sell order
         const buyOrder1: Order = {
             price: 105,
@@ -183,8 +183,8 @@ describe("OrderBook Tests", () => {
             orderId: 2,
             filled: 0,
         };
-        market.addOrder(buyOrder1);
-        market.addOrder(buyOrder2);
+        await market.addOrder(buyOrder1);
+        await market.addOrder(buyOrder2);
 
         const sellOrder1: Order = {
             price: 103,
@@ -194,7 +194,7 @@ describe("OrderBook Tests", () => {
             orderId: 3,
             filled: 0,
         };
-        const sellOrder1Result = market.addOrder(sellOrder1);
+        const sellOrder1Result = await market.addOrder(sellOrder1);
         expect(sellOrder1Result).toStrictEqual({
             executedQuantity: 1,
             fills: [{
@@ -216,7 +216,7 @@ describe("OrderBook Tests", () => {
             orderId: 4,
             filled: 0,
         };
-        const sellOrder2Result = market.addOrder(sellOrder2);
+        const sellOrder2Result = await market.addOrder(sellOrder2);
         expect(sellOrder2Result).toStrictEqual({
             executedQuantity: 3,
             fills: [{
@@ -238,7 +238,7 @@ describe("OrderBook Tests", () => {
         expect(buyOrder2.filled).toEqual(2);
     });
 
-    test("Test same owner order matching", () => {
+    test("Test same owner order matching", async () => {
         const buyOrder1: Order = {
             price: 105,
             quantity: 2,
@@ -255,15 +255,15 @@ describe("OrderBook Tests", () => {
             orderId: 3,
             filled: 0,
         };
-        market.addOrder(sellOrder1);
+        await market.addOrder(sellOrder1);
 
-        expect(market.addOrder(buyOrder1)).toStrictEqual({
+        expect(await market.addOrder(buyOrder1)).toStrictEqual({
             executedQuantity: 0,
             fills: []
         });
     });
 
-    test("Test order buy price less than sell price must not match", () => {
+    test("Test order buy price less than sell price must not match", async () => {
         const buyOrder1: Order = {
             price: 105,
             quantity: 2,
@@ -280,14 +280,14 @@ describe("OrderBook Tests", () => {
             orderId: 3,
             filled: 0,
         };
-        market.addOrder(sellOrder1);
-        expect(market.addOrder(buyOrder1)).toStrictEqual({
+        await market.addOrder(sellOrder1);
+        expect(await market.addOrder(buyOrder1)).toStrictEqual({
             executedQuantity: 0,
             fills: []
         });
     });
 
-    test("Test order sell price more than buy price must not match", () => {
+    test("Test order sell price more than buy price must not match", async () => {
         const buyOrder1: Order = {
             price: 105,
             quantity: 2,
@@ -304,14 +304,14 @@ describe("OrderBook Tests", () => {
             orderId: 3,
             filled: 0,
         };
-        market.addOrder(buyOrder1);
-        expect(market.addOrder(sellOrder1)).toStrictEqual({
+        await market.addOrder(buyOrder1);
+        expect(await market.addOrder(sellOrder1)).toStrictEqual({
             executedQuantity: 0,
             fills: []
         });
     });
 
-    test("Test cancel order", () => {
+    test("Test cancel order", async () => {
         const buyOrder: Order = {
             price: 105,
             quantity: 2,
@@ -333,8 +333,8 @@ describe("OrderBook Tests", () => {
         expect(market.cancelOrder(2, "sell")).toEqual(false);
 
         // testing cancel on empty market
-        market.addOrder(buyOrder);
-        market.addOrder(sellOrder);
+        await market.addOrder(buyOrder);
+        await market.addOrder(sellOrder);
 
         // testing sell order id with buy side
         expect(market.cancelOrder(3, "buy")).toEqual(false);
@@ -346,7 +346,7 @@ describe("OrderBook Tests", () => {
         expect(market.cancelOrder(3, "sell")).toStrictEqual(sellOrder);
     });
 
-    test("Test get depth", () => {
+    test("Test get depth", async () => {
         const buyOrder1: Order = {
             price: 105,
             quantity: 2,
@@ -396,12 +396,12 @@ describe("OrderBook Tests", () => {
             filled: 0,
         };
 
-        market.addOrder(buyOrder1);
-        market.addOrder(buyOrder2);
-        market.addOrder(buyOrder3);
-        market.addOrder(sellOrder1);
-        market.addOrder(sellOrder2);
-        market.addOrder(sellOrder3);
+        await market.addOrder(buyOrder1);
+        await market.addOrder(buyOrder2);
+        await market.addOrder(buyOrder3);
+        await market.addOrder(sellOrder1);
+        await market.addOrder(sellOrder2);
+        await market.addOrder(sellOrder3);
 
         expect(market.getDepth()).toStrictEqual({
             bids: {
@@ -415,7 +415,7 @@ describe("OrderBook Tests", () => {
         });
     });
 
-    test("Test get open orders of user", () => {
+    test("Test get open orders of user", async () => {
         const buyOrder1: Order = {
             price: 105,
             quantity: 2,
@@ -465,12 +465,12 @@ describe("OrderBook Tests", () => {
             filled: 0,
         };
 
-        market.addOrder(buyOrder1);
-        market.addOrder(buyOrder2);
-        market.addOrder(buyOrder3);
-        market.addOrder(sellOrder1);
-        market.addOrder(sellOrder2);
-        market.addOrder(sellOrder3);
+        await market.addOrder(buyOrder1);
+        await market.addOrder(buyOrder2);
+        await market.addOrder(buyOrder3);
+        await market.addOrder(sellOrder1);
+        await market.addOrder(sellOrder2);
+        await market.addOrder(sellOrder3);
 
         const user2Orders = market.getUserOpenOrders("user2");
         expect(user2Orders.bids).toEqual(expect.arrayContaining([buyOrder2, buyOrder3]));
@@ -481,7 +481,7 @@ describe("OrderBook Tests", () => {
         expect(user4Orders.asks).toEqual(expect.arrayContaining([sellOrder2]));
     });
 
-    test("Test overall open orders count", () => {
+    test("Test overall open orders count", async () => {
         const buyOrder1: Order = {
             price: 105,
             quantity: 2,
@@ -531,12 +531,12 @@ describe("OrderBook Tests", () => {
             filled: 0,
         };
 
-        market.addOrder(buyOrder1);
-        market.addOrder(buyOrder2);
-        market.addOrder(buyOrder3);
-        market.addOrder(sellOrder1);
-        market.addOrder(sellOrder2);
-        market.addOrder(sellOrder3);
+        await market.addOrder(buyOrder1);
+        await market.addOrder(buyOrder2);
+        await market.addOrder(buyOrder3);
+        await market.addOrder(sellOrder1);
+        await market.addOrder(sellOrder2);
+        await market.addOrder(sellOrder3);
 
         expect(market.getOpenOrdersCount()).toEqual({
             totalBids: 2,

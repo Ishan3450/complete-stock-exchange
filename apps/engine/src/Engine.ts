@@ -53,7 +53,7 @@ export class Engine {
                         if (side !== "buy" && side !== "sell") {
                             throw new Error("Side must be either 'buy' or 'sell'");
                         }
-                        const { executedQuantity, fills, orderId } = this._createOrder(quantity, price, market, side, userId);
+                        const { executedQuantity, fills, orderId } = await this._createOrder(quantity, price, market, side, userId);
                         await RedisManager.getInstance().publishMessage(clientId, {
                             type: "API_ORDER_PLACED",
                             data: {
@@ -252,7 +252,7 @@ export class Engine {
         }
     }
 
-    private _createOrder(quantity: number, price: number, market: string, side: "buy" | "sell", userId: string): { executedQuantity: number, fills: Fill[], orderId: number } {
+    private async _createOrder(quantity: number, price: number, market: string, side: "buy" | "sell", userId: string): Promise<{ executedQuantity: number, fills: Fill[], orderId: number }> {
         const [baseAsset, quoteAsset] = market.split("_");
 
         if (!baseAsset || !quoteAsset) {
@@ -263,13 +263,12 @@ export class Engine {
 
         // call for order book
         const newOrder: Order = { quantity, price, side, userId, orderId: ++this.lastTradeId, filled: 0 };
-        const { fills, executedQuantity }: OrderExecuted = this.markets.get(market)?.addOrder(newOrder) ?? { executedQuantity: 0, fills: [] };
+        const { fills, executedQuantity }: OrderExecuted = await this.markets.get(market)?.addOrder(newOrder) ?? { executedQuantity: 0, fills: [] };
 
         this._updateUserFundsOrHoldings(executedQuantity, fills, price, baseAsset, quoteAsset, side, userId);
         this._updateDbOrders(newOrder, fills); // update order and fills matched with that order
         this._addDbTrades(fills, market, side); // add all the fills/trades happened during matching
         this._wsUpdateDepthAndSend(market);
-        // this._updateWsTicker();
 
         return { fills, executedQuantity, orderId: this.lastTradeId };
     }
@@ -355,6 +354,9 @@ export class Engine {
         }
     }
 
+    /**
+     * NOTE: Currently not utilzing this function
+     */
     private _updateDbOrders(newOrder: Order, fills: Fill[]): void {
         // TODO: to check here is the newOrder.filled is correctly updated or not (TO check pass by ref worked as expected or not)
         RedisManager.getInstance().pushMessageToQueue(
@@ -388,7 +390,10 @@ export class Engine {
                         timestamp: new Date().toISOString(),
                         price: fill.price,
                         quantity: fill.quantity,
-                        side: side === "buy" ? "sell" : "buy"
+                        side: side === "buy" ? "sell" : "buy",
+                        fillOwnerId: fill.fillOwnerId,
+                        marketOrderId: fill.marketOrderId,
+                        tradeId: fill.tradeId,
                     })),
                     marketName,
                 }
@@ -400,7 +405,7 @@ export class Engine {
         if (!orderBook) return;
 
         const depth = orderBook.getDepth();
-        await RedisManager.getInstance().publishMessage(market, {
+        await RedisManager.getInstance().publishMessage(`${market}_TRADES`, {
             type: "WS_DEPTH",
             data: {
                 market,

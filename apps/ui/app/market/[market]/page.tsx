@@ -69,7 +69,7 @@ export default function MarketPage() {
                 ws.current.send(JSON.stringify({
                     type: "SUBSCRIBE",
                     data: {
-                        subscriptionName: market
+                        subscriptionName: `${market}_TRADES`
                     }
                 }));
 
@@ -81,6 +81,7 @@ export default function MarketPage() {
                             bids: data.data.bids,
                             asks: data.data.asks,
                         })
+                        getMarketTrades();
                     }
                     if (data.type === "WS_TICKER_UPDATE") {
                         useTickerData({

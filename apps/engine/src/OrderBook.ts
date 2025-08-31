@@ -1,4 +1,5 @@
 import { Order, Fill } from "@repo/shared-types/types"
+import { dbClient } from "./dbClient";
 
 export interface OrderExecuted {
     executedQuantity: number;
@@ -21,10 +22,12 @@ export class OrderBook {
         this.bids = this.asks = [];
     }
 
-    public addOrder(order: Order): OrderExecuted {
+    public async addOrder(order: Order): Promise<OrderExecuted> {
         if (order.side == "buy") {
             const { executedQuantity, fills } = this._matchBid(order);
             order.filled += executedQuantity;
+
+            await this._insertOrUpdateOrdersInDb(order, fills);
             if (executedQuantity == order.quantity) {
                 return {
                     executedQuantity,
@@ -39,6 +42,8 @@ export class OrderBook {
         } else {
             const { executedQuantity, fills } = this._matchAsk(order);
             order.filled += executedQuantity;
+
+            await this._insertOrUpdateOrdersInDb(order, fills);
             if (executedQuantity == order.quantity) {
                 return {
                     executedQuantity, fills
@@ -46,6 +51,50 @@ export class OrderBook {
             }
             this.asks.push(order);
             return { executedQuantity, fills }
+        }
+    }
+
+    private async _insertOrUpdateOrdersInDb(order: Order, fills: Fill[]) {
+        const tableName = `${this.marketName}_orders`;
+        await dbClient.query(`
+            CREATE TABLE IF NOT EXISTS ${tableName} (
+                orderId     INT             NOT NULL        PRIMARY KEY,
+                price       NUMERIC(10,2)   NOT NULL,
+                quantity    NUMERIC(10,2)   NOT NULL,
+                side        VARCHAR         NOT NULL,
+                userId      INT             NOT NULL,
+                filled      NUMERIC(10,2)   NOT NULL
+            );
+        `);
+
+        const { rowCount } = await dbClient.query(`
+            SELECT orderId FROM ${tableName} WHERE orderId = $1`,
+            [order.orderId]
+        );
+        if (rowCount && rowCount > 1) {
+            await dbClient.query(`
+                UPDATE ${tableName}
+                SET
+                    quantity = $1,
+                    filled = $2
+                WHERE
+                    orderId = $3
+            `, [order.quantity, order.filled, order.orderId]);
+        } else {
+            await dbClient.query(`
+                INSERT INTO ${tableName} (orderId, price, quantity, side, userId, filled)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [order.orderId, order.price, order.quantity, order.side, order.userId, order.filled]);
+        }
+
+        for (const fill of fills) {
+            await dbClient.query(`
+                UPDATE ${tableName}
+                SET
+                    filled = $1
+                WHERE
+                    orderId = $2
+            `, [fill.quantity, fill.marketOrderId]);
         }
     }
 

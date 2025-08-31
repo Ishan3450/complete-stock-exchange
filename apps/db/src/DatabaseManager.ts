@@ -48,19 +48,31 @@ export class DatabaseManager {
 
     private async _addTrade(trade: Trade, marketName: string): Promise<void> {
         await this._createTableIfNotExists(marketName);
-        const insertQuery = `INSERT INTO ${marketName} (price, timestamp, quantity, side) VALUES($1, $2, $3, $4)`;
-        await this.pgClient.query(insertQuery, [trade.price, trade.timestamp, trade.quantity, trade.side]);
+        const insertQuery = `
+            INSERT INTO ${marketName}_trades (price, timestamp, quantity, side, fillOwnerId, marketOrderId, tradeId)
+            VALUES($1, $2, $3, $4, $5, $6, $7)
+        `;
+        await this.pgClient.query(
+            insertQuery,
+            [
+                trade.price, trade.timestamp, trade.quantity, trade.side,
+                trade.fillOwnerId, trade.marketOrderId, trade.tradeId
+            ]
+        );
         await this._refreshOhlcvViews();
     }
 
     private async _createTableIfNotExists(tableName: string): Promise<void> {
-        tableName = tableName.toLowerCase();
+        tableName = `${tableName.toLowerCase()}_trades`;
         const query = `
             CREATE TABLE IF NOT EXISTS ${tableName} (
+                tradeId         INT             NOT NULL    PRIMARY KEY,
                 price           NUMERIC(10,2)   NOT NULL,
                 timestamp       TIMESTAMPTZ     NOT NULL,
                 quantity        NUMERIC(10,2)   NOT NULL,
-                side            VARCHAR         NOT NULL
+                side            VARCHAR         NOT NULL,
+                fillOwnerId     INT             NOT NULL,
+                marketOrderId   INT             NOT NULL
             );
         `;
         await this.pgClient.query(query);
@@ -78,17 +90,17 @@ export class DatabaseManager {
         const viewName = `${tableName}_${bucketType}`;
 
         const sql = `
-        CREATE MATERIALIZED VIEW IF NOT EXISTS "${viewName}" AS
-        SELECT
-            date_trunc('${bucketType}', timestamp) as bucket,
-            FIRST(price, timestamp) AS open,
-            MAX(price) AS high,
-            MIN(price) AS low,
-            LAST(price, timestamp) AS close,
-            SUM(quantity) AS volume
-        FROM "${tableName}"
-        GROUP BY bucket
-        ORDER BY bucket;
+            CREATE MATERIALIZED VIEW IF NOT EXISTS "${viewName}" AS
+            SELECT
+                date_trunc('${bucketType}', timestamp) as bucket,
+                FIRST(price, timestamp) AS open,
+                MAX(price) AS high,
+                MIN(price) AS low,
+                LAST(price, timestamp) AS close,
+                SUM(quantity) AS volume
+            FROM "${tableName}"
+            GROUP BY bucket
+            ORDER BY bucket;
         `;
         await this.pgClient.query(sql);
         this.ohlcvViews.add(viewName);
@@ -116,7 +128,7 @@ export class DatabaseManager {
                 type: "WS_OHLCV_DATA",
                 data: {
                     market: `${splitted[0]}_${splitted[1]}`,
-                    bucket: splitted[2]!,
+                    bucket: splitted[3]!, // not splitted[2] is 'trades' eg. tata_inr_trades_day
                     data: rows
                 }
             }
@@ -128,7 +140,7 @@ export class DatabaseManager {
                 const dataToSend: WebsocketDatabaseMessageType = {
                     type: "WS_TICKER_UPDATE",
                     data: {
-                        market: view.substring(0, view.length - 5),
+                        market: view.substring(0, view.length - 11), // TODO: do we need market name here?
                         open,
                         high,
                         low,

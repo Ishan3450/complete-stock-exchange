@@ -18,7 +18,7 @@ tickerRouter.get('/get', async (req: Request, res: Response) => {
     const { rows } = await dbClient.query(`
         SELECT
             open, high, low, close, volume
-        FROM ${market.toString().toLowerCase()}_day
+        FROM ${market.toString().toLowerCase()}_trades_day
         ORDER BY bucket DESC
         LIMIT 1
     `);

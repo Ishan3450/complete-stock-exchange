@@ -1,4 +1,4 @@
-import { Client } from 'pg';
+import { Client } from "pg";
 
 export const dbClient = new Client({
     user: "postgres",
