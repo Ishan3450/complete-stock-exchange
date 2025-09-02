@@ -116,6 +116,22 @@ export type FrontendApiMessageType = Error | {
         close: number,
         volume: number,
     }
+} | {
+    type: "ORDER_SUMMARY",
+    orderInfo: {
+        price: number,
+        quantity: number,
+        side: 'buy' | 'sell',
+        filled: number,
+        base_asset: string,
+        quote_asset: string,
+    },
+    orderTrades: {
+        price: number,
+        timestamp: string,
+        quantity: number,
+        side: string,
+    }
 }
 
 

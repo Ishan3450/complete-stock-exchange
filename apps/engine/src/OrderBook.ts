@@ -58,12 +58,14 @@ export class OrderBook {
         const tableName = `${this.marketName}_orders`;
         await dbClient.query(`
             CREATE TABLE IF NOT EXISTS ${tableName} (
-                orderId     INT             NOT NULL        PRIMARY KEY,
-                price       NUMERIC(10,2)   NOT NULL,
-                quantity    NUMERIC(10,2)   NOT NULL,
-                side        VARCHAR         NOT NULL,
-                userId      INT             NOT NULL,
-                filled      NUMERIC(10,2)   NOT NULL
+                orderid          INT                  NOT NULL        PRIMARY KEY,
+                price            NUMERIC(10,2)        NOT NULL,
+                quantity         NUMERIC(10,2)        NOT NULL,
+                side             VARCHAR              NOT NULL,
+                userid           INT                  NOT NULL,
+                filled           NUMERIC(10,2)        NOT NULL,
+                base_asset       VARCHAR              NOT NULL,
+                quote_asset      VARCHAR              NOT NULL
             );
         `);
 
@@ -82,9 +84,12 @@ export class OrderBook {
             `, [order.quantity, order.filled, order.orderId]);
         } else {
             await dbClient.query(`
-                INSERT INTO ${tableName} (orderId, price, quantity, side, userId, filled)
-                VALUES ($1, $2, $3, $4, $5, $6)
-            `, [order.orderId, order.price, order.quantity, order.side, order.userId, order.filled]);
+                INSERT INTO ${tableName} (orderid, price, quantity, side, userid, filled, base_asset, quote_asset)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `, [
+                order.orderId, order.price, order.quantity, order.side,
+                order.userId, order.filled, this.baseAsset, this.quoteAsset
+            ]);
         }
 
         for (const fill of fills) {
