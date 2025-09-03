@@ -130,8 +130,8 @@ export type FrontendApiMessageType = Error | {
         price: number,
         timestamp: string,
         quantity: number,
-        side: string,
-    }
+        side: 'buy' | 'sell',
+    }[]
 }
 
 

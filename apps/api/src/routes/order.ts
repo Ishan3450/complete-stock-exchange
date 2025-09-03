@@ -39,7 +39,7 @@ orderRouter.get("/", async (req: Request, res: Response) => {
 
     res.json({
         type: "ORDER_SUMMARY",
-        orderInfo: orderInfo.rows,
+        orderInfo: orderInfo.rows[0],
         orderTrades: orderTrades.rows
     })
 });

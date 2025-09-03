@@ -70,17 +70,18 @@ export class OrderBook {
         `);
 
         const { rowCount } = await dbClient.query(`
-            SELECT orderId FROM ${tableName} WHERE orderId = $1`,
+            SELECT orderid FROM ${tableName} WHERE orderid = $1`,
             [order.orderId]
         );
-        if (rowCount && rowCount > 1) {
+        if (rowCount) {
+            // TODO: in below udpate no need to add quantity field
             await dbClient.query(`
                 UPDATE ${tableName}
                 SET
                     quantity = $1,
                     filled = $2
                 WHERE
-                    orderId = $3
+                    orderid = $3
             `, [order.quantity, order.filled, order.orderId]);
         } else {
             await dbClient.query(`
@@ -96,7 +97,7 @@ export class OrderBook {
             await dbClient.query(`
                 UPDATE ${tableName}
                 SET
-                    filled = $1
+                    filled = filled + $1
                 WHERE
                     orderId = $2
             `, [fill.quantity, fill.marketOrderId]);
