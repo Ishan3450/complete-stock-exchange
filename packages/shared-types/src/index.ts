@@ -9,6 +9,8 @@ export interface Order {
     userId: string;
     orderId: number;
     filled: number;
+    base_asset?: string;
+    quote_asset?: string;
 }
 
 export interface Fill {
@@ -17,6 +19,7 @@ export interface Fill {
     fillOwnerId: string;
     tradeId: number;
     marketOrderId: number;
+    matchedOrderId: number;
 }
 
 export interface Error {
@@ -32,14 +35,10 @@ export interface UserInterface {
     lockedHolding: Record<string, number>; // base_asset -> quantity
 }
 
-export interface Trade {
-    price: number;
+
+export interface Trade extends Fill {
     timestamp: string;
-    quantity: number;
     side: 'buy' | 'sell';
-    fillOwnerId: string;
-    marketOrderId: number;
-    tradeId: number;
 }
 
 // ==================================================================
@@ -132,6 +131,11 @@ export type FrontendApiMessageType = Error | {
         quantity: number,
         side: 'buy' | 'sell',
     }[]
+} | {
+    type: "USER_ORDERS",
+    data: {
+        orders: Omit<Order, 'userId'>[]
+    }
 }
 
 

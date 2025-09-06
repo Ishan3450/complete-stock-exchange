@@ -387,13 +387,14 @@ export class Engine {
                 type: "DB_ADD_TRADES",
                 data: {
                     trades: fills.map(fill => ({
+                        tradeId: fill.tradeId,
                         timestamp: new Date().toISOString(),
                         price: fill.price,
                         quantity: fill.quantity,
                         side: side === "buy" ? "sell" : "buy",
                         fillOwnerId: fill.fillOwnerId,
                         marketOrderId: fill.marketOrderId,
-                        tradeId: fill.tradeId,
+                        matchedOrderId: fill.matchedOrderId,
                     })),
                     marketName,
                 }

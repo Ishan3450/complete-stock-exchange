@@ -5,6 +5,7 @@ import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, Tabl
 import { apiUrl } from "@repo/shared-types/portsAndUrl";
 import { FrontendApiMessageType } from "@repo/shared-types/types";
 import axios, { AxiosResponse } from "axios";
+import { ChevronLeftIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -50,9 +51,16 @@ export default function Order() {
     }, []);
 
     async function getOrderSummary() {
-        const { data }: AxiosResponse<FrontendApiMessageType> = await axios.get(`
-            ${apiUrl}/order?market=${market}&orderId=${orderId}
-        `);
+        const userId = localStorage.getItem("uid");
+
+        if (!userId) {
+            return toast.error("No user found !!");
+        }
+
+        const { data }: AxiosResponse<FrontendApiMessageType> = await axios.get(
+            `${apiUrl}/order`,
+            { params: { market, orderId, userId } }
+        );
 
         if (data.type === "Error") {
             toast.error(data.errorMsg);
@@ -69,8 +77,9 @@ export default function Order() {
 
     return (
         <Container className="pt-10 pb-5 grid gap-5">
-            <div className="text-4xl font-medium">
-                Order Summary
+            <div className="text-4xl font-medium flex gap-3 items-center">
+                <span onClick={() => router.back()} className="hover:text-gray-500 cursor-pointer"><ChevronLeftIcon size={25} /></span>
+                <span>Order Summary</span>
             </div>
 
             {/* Order Information */}

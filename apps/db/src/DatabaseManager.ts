@@ -49,14 +49,14 @@ export class DatabaseManager {
     private async _addTrade(trade: Trade, marketName: string): Promise<void> {
         await this._createTableIfNotExists(marketName);
         const insertQuery = `
-            INSERT INTO ${marketName}_trades (price, timestamp, quantity, side, fillOwnerId, marketOrderId, tradeId)
-            VALUES($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO ${marketName}_trades (price, timestamp, quantity, side, fillOwnerId, marketOrderId, tradeId, matchedorderid)
+            VALUES($1, $2, $3, $4, $5, $6, $7, $8)
         `;
         await this.pgClient.query(
             insertQuery,
             [
                 trade.price, trade.timestamp, trade.quantity, trade.side,
-                trade.fillOwnerId, trade.marketOrderId, trade.tradeId
+                trade.fillOwnerId, trade.marketOrderId, trade.tradeId, trade.matchedOrderId
             ]
         );
         await this._refreshOhlcvViews();
@@ -66,13 +66,14 @@ export class DatabaseManager {
         tableName = `${tableName.toLowerCase()}_trades`;
         const query = `
             CREATE TABLE IF NOT EXISTS ${tableName} (
-                tradeId         INT             NOT NULL    PRIMARY KEY,
-                price           NUMERIC(10,2)   NOT NULL,
-                timestamp       TIMESTAMPTZ     NOT NULL,
-                quantity        NUMERIC(10,2)   NOT NULL,
-                side            VARCHAR         NOT NULL,
-                fillOwnerId     INT             NOT NULL,
-                marketOrderId   INT             NOT NULL
+                tradeId          INT             NOT NULL    PRIMARY KEY,
+                price            NUMERIC(10,2)   NOT NULL,
+                timestamp        TIMESTAMPTZ     NOT NULL,
+                quantity         NUMERIC(10,2)   NOT NULL,
+                side             VARCHAR         NOT NULL,
+                fillOwnerId      INT             NOT NULL,
+                marketOrderId    INT             NOT NULL,
+                matchedOrderId   INT             NOT NULL
             );
         `;
         await this.pgClient.query(query);

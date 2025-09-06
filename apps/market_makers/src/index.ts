@@ -1,4 +1,4 @@
-import { redisUrl } from "@repo/shared-types/portsAndUrl";
+import { redisUrl, simulate } from "@repo/shared-types/portsAndUrl";
 import { MarketMakerEngineMessageType } from "@repo/shared-types/types";
 import { createClient } from "redis";
 
@@ -129,7 +129,9 @@ function getRandomNumber(multiplier: number): number {
     return Number((Math.random() * multiplier).toFixed(2));
 }
 
-setTimeout(() => {
-    init();
-    setInterval(main, 30 * 1000);
-}, 30 * 1000);
+if (simulate) {
+    setTimeout(() => {
+        init();
+        setInterval(main, 30 * 1000);
+    }, 30 * 1000);
+}

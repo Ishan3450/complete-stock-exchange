@@ -6,16 +6,16 @@ import { getWebSocket } from "@/lib/websocket";
 import { useEffect, useRef, useState } from "react";
 
 export default function Home() {
-  const ws = useRef<WebSocket | null>(null);
+  // const ws = useRef<WebSocket | null>(null);
 
-  useEffect(() => {
-    getWebSocket().then((wsRes) => {
-      ws.current = wsRes;
-    });
-  }, []);
+  // useEffect(() => {
+  //   getWebSocket().then((wsRes) => {
+  //     ws.current = wsRes;
+  //   });
+  // }, []);
 
   return (
-    <Container>
+    <Container className="py-3">
       <MarketList />
     </Container>
   );

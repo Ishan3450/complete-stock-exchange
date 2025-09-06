@@ -1,14 +1,23 @@
 "use client"
 
+import Chart from "@/components/chart";
 import OrderBookDepth from "@/components/order_book";
 import Portfolio from "@/components/portfolio";
 import { Trades } from "@/components/trades";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getFormattedValue } from "@/lib/common";
 import { getWebSocket } from "@/lib/websocket";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import { apiUrl } from "@repo/shared-types/portsAndUrl";
 import {
     ApiEngineMessageType,
@@ -19,16 +28,19 @@ import {
     WebsocketEngineMessageType
 } from "@repo/shared-types/types";
 import axios, { AxiosResponse } from "axios";
-import { ChevronLeft } from "lucide-react";
+import { ChartColumnStackedIcon, ChevronDown, ChevronLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { CandlestickData, Time } from "lightweight-charts";
 
 
 export default function MarketPage() {
     const router = useRouter();
     const { market } = useParams<{ market: string }>();
+    const [tabName, useTabName] = useState<"chart" | "trades" | "orderbook" | "portfolio">("chart");
+    const [chartTimeBucket, useChartTimeBucket] = useState<'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'>('day');
     const [side, useSide] = useState<'buy' | 'sell'>('buy');
     const ws = useRef<WebSocket | null>(null);
     const userId = useRef<string | null>(null);
@@ -54,6 +66,7 @@ export default function MarketPage() {
     const [quantity, useQuantity] = useState<string>("");
     const [loading, useLoading] = useState<boolean>(false);
     const [trades, useTrades] = useState<Trade[]>([]);
+    const [chartData, useChartData] = useState<CandlestickData<Time>[]>([]);
 
     useEffect(() => {
         const uid = localStorage.getItem("uid");
@@ -109,6 +122,10 @@ export default function MarketPage() {
         getMarketTrades();
     }, []);
 
+    useEffect(() => {
+        
+    }, [chartTimeBucket]);
+
     function getUserPortfolio() {
         axios.post(`${apiUrl}/portfolio/get`, {
             userId: userId.current
@@ -128,6 +145,7 @@ export default function MarketPage() {
         }
         const formattedPrice = Number(price);
         const formattedQuantity = Number(quantity);
+        let toGetUpdatedPortfolio: boolean = true;
 
         // quantity, price, market, side, userId
         const { data }: AxiosResponse<ApiEngineMessageType | FrontendApiMessageType> = await axios.post(`${apiUrl}/order/add`, {
@@ -146,16 +164,12 @@ export default function MarketPage() {
             return;
         }
         if (data.type === "API_ORDER_PLACED" && data.data.executedQuantity > 0) {
-            /**
-             * PRE: before below TODO order trades things must be implemented.
-             * 
-             * TODO: in future make a route to see the order based on the order id
-             * and here if this condition succeeeds then redirect the user to that route.
-             */
+            toGetUpdatedPortfolio = false;
+            router.push(`/order/${market}/${data.data.orderId}`);
         }
         toast.success("Order added successfully !!")
 
-        getUserPortfolio();
+        if (toGetUpdatedPortfolio) getUserPortfolio();
         useLoading(false);
     }
 
@@ -171,7 +185,7 @@ export default function MarketPage() {
                 <Card>
                     <CardHeader className="flex items-center justify-between">
                         <Link href={"/"} className="text-gray-500 cursor-pointer p-2">
-                            <ChevronLeft size={25} />
+                            <ChevronLeftIcon size={25} />
                         </Link>
                         <CardTitle className="text-2xl w-[40%]">
                             <span>{splitted[0]}</span>
@@ -209,33 +223,71 @@ export default function MarketPage() {
                     </CardHeader>
                 </Card>
                 <Card className="p-5 h-full overflow-scroll">
-                    <Tabs defaultValue="account">
-                        <TabsList className="py-5 px-1">
-                            <TabsTrigger className="p-4" value="chart">Chart</TabsTrigger>
-                            <TabsTrigger className="p-4" value="trades">Trades</TabsTrigger>
-                            <TabsTrigger className="p-4" value="book">Book</TabsTrigger>
-                            <TabsTrigger className="p-4" value="portfolio">Portfolio</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="chart">Chart</TabsContent>
-                        <TabsContent value="trades">
-                            <Trades trades={trades} assets={splitted} />
-                        </TabsContent>
-                        <TabsContent value="book">
-                            <OrderBookDepth assets={splitted} openOrdersDepth={openOrdersDepth} />
-                        </TabsContent>
-                        <TabsContent value="portfolio">
-                            {user && <Portfolio userPortfolio={user} />}
-                            {!user && (
-                                <div className="p-5 text-lg bg-gray-100 my-2 rounded-lg">
-                                    Please{" "}
-                                    <Link href={"/signin"} className="text-blue-500 hover:underline">signin</Link>{" "}
-                                    or{" "}
-                                    <Link href={"/signup"} className="text-blue-500 hover:underline">signup</Link>{" "}
-                                    to see your portfolio.
-                                </div>
+                    <div className="h-full">
+                        <div className="flex gap-3 mb-5">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size={"lg"} className="capitalize"><ChevronDown /> {tabName}</Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-56">
+                                    <DropdownMenuLabel>View</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuRadioGroup
+                                        value={tabName}
+                                        onValueChange={(value: string) => {
+                                            useTabName(value as ("chart" | "trades" | "orderbook" | "portfolio"));
+                                        }}>
+                                        <DropdownMenuRadioItem value="chart">Chart</DropdownMenuRadioItem>
+                                        <DropdownMenuRadioItem value="trades">Trades</DropdownMenuRadioItem>
+                                        <DropdownMenuRadioItem value="orderbook">Orderbook</DropdownMenuRadioItem>
+                                        <DropdownMenuRadioItem value="portfolio">Portfolio</DropdownMenuRadioItem>
+                                    </DropdownMenuRadioGroup>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            {/* time buckets for chart */}
+                            {tabName === "chart" && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size={"lg"} className="capitalize"><ChartColumnStackedIcon size={40} />{chartTimeBucket}</Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-56">
+                                        <DropdownMenuLabel>Chart Data Bucket</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuRadioGroup
+                                            value={chartTimeBucket}
+                                            onValueChange={(value: string) => {
+                                                useChartTimeBucket(value as ("minute" | "hour" | "day" | "week" | "month" | "year"));
+                                            }}>
+                                            <DropdownMenuRadioItem value="minute">Minute</DropdownMenuRadioItem>
+                                            <DropdownMenuRadioItem value="hour">Hour</DropdownMenuRadioItem>
+                                            <DropdownMenuRadioItem value="day">Day</DropdownMenuRadioItem>
+                                            <DropdownMenuRadioItem value="week">Week</DropdownMenuRadioItem>
+                                            <DropdownMenuRadioItem value="month">Month</DropdownMenuRadioItem>
+                                            <DropdownMenuRadioItem value="year">Year</DropdownMenuRadioItem>
+                                        </DropdownMenuRadioGroup>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             )}
-                        </TabsContent>
-                    </Tabs>
+                        </div>
+                        {tabName === "chart" && <Chart chartData={chartData} />}
+                        {tabName === "trades" && <Trades trades={trades} assets={splitted} />}
+                        {tabName === "orderbook" && <OrderBookDepth assets={splitted} openOrdersDepth={openOrdersDepth} />}
+                        {tabName === "portfolio" && (
+                            <>
+                                {user && <Portfolio userPortfolio={user} />}
+                                {!user && (
+                                    <div className="p-5 text-lg bg-gray-100 my-2 rounded-lg">
+                                        Please{" "}
+                                        <Link href={"/signin"} className="text-blue-500 hover:underline">signin</Link>{" "}
+                                        or{" "}
+                                        <Link href={"/signup"} className="text-blue-500 hover:underline">signup</Link>{" "}
+                                        to see your portfolio.
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
                 </Card>
             </div>
             <Card className="w-[30%] p-5">

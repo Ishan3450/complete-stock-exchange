@@ -68,6 +68,18 @@ export class OrderBook {
                 quote_asset      VARCHAR              NOT NULL
             );
         `);
+        await dbClient.query(`
+            CREATE TABLE IF NOT EXISTS user_order_markets (
+              userid INT NOT NULL,
+              market VARCHAR NOT NULL,
+              UNIQUE(userid, market)
+            );
+        `);
+        await dbClient.query(`
+            INSERT INTO user_order_markets(userid, market)
+            VALUES ($1, $2)
+            ON CONFLICT (userid, market) DO NOTHING;
+        `, [order.userId, this.marketName]);
 
         const { rowCount } = await dbClient.query(`
             SELECT orderid FROM ${tableName} WHERE orderid = $1`,
@@ -127,6 +139,7 @@ export class OrderBook {
                     fillOwnerId: ask.userId,
                     tradeId: ++this.lastTradeId,
                     marketOrderId: ask.orderId,
+                    matchedOrderId: order.orderId,
                 });
 
                 if (remainingQuantityToFill == 0) break;
@@ -162,7 +175,8 @@ export class OrderBook {
                     quantity: quantityToBeExecuted,
                     fillOwnerId: bid.userId,
                     tradeId: ++this.lastTradeId,
-                    marketOrderId: bid.orderId
+                    marketOrderId: bid.orderId,
+                    matchedOrderId: order.orderId,
                 });
 
                 if (remainingQuantityToFill == 0) break;

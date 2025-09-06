@@ -6,9 +6,9 @@ type PortfolioProps = {
 }
 
 export default function Portfolio({ userPortfolio }: PortfolioProps) {
-    return <div>
+    return <div className="w-full">
         {userPortfolio && (
-            <div className="p-6">
+            <div className="px-6">
                 <h2 className="text-xl font-semibold mb-4">Portfolio</h2>
 
                 {/* Balances */}
