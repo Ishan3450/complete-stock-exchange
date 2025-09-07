@@ -85,6 +85,9 @@ export class OrderBook {
             SELECT orderid FROM ${tableName} WHERE orderid = $1`,
             [order.orderId]
         );
+
+        // TODO: to check whether the if block gets executed even a single time or not.
+        // because I don't think the if block gets executed even a single time
         if (rowCount) {
             // TODO: in below udpate no need to add quantity field
             await dbClient.query(`

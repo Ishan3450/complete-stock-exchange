@@ -113,24 +113,21 @@ export class DatabaseManager {
 
             await this.pgClient.query(`REFRESH MATERIALIZED VIEW ${view}`);
 
-            const { rows, rowCount } = await this.pgClient.query<{
+            const { rows } = await this.pgClient.query<{
                 open: number;
                 high: number;
                 low: number;
                 close: number;
                 volume: number;
-            }>(`SELECT open, high, low, close, volume FROM ${view}`);
-
-            /**
-             * TODO: here I am sending 2 different publish messages, instead convert this into batch
-             */
+                time: string;
+            }>(`SELECT open, high, low, close, volume, bucket as time FROM ${view}`);
 
             const viewData: WebsocketDatabaseMessageType = {
                 type: "WS_OHLCV_DATA",
                 data: {
                     market: `${splitted[0]}_${splitted[1]}`,
                     bucket: splitted[3]!, // not splitted[2] is 'trades' eg. tata_inr_trades_day
-                    data: rows
+                    lines: rows
                 }
             }
             await this.redisClient.publish(view.toString().toUpperCase(), JSON.stringify(viewData));
@@ -141,7 +138,7 @@ export class DatabaseManager {
                 const dataToSend: WebsocketDatabaseMessageType = {
                     type: "WS_TICKER_UPDATE",
                     data: {
-                        market: view.substring(0, view.length - 11), // TODO: do we need market name here?
+                        market: view.substring(0, view.length - 11),
                         open,
                         high,
                         low,

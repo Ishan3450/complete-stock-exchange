@@ -136,7 +136,18 @@ export type FrontendApiMessageType = Error | {
     data: {
         orders: Omit<Order, 'userId'>[]
     }
-}
+} | {
+    type: "OHLCV_LINES",
+    data: {
+        lines: {
+            open: number,
+            high: number,
+            low: number,
+            close: number,
+            time: string,
+        }[],
+    }
+};
 
 
 /**
@@ -236,12 +247,13 @@ export type WebsocketDatabaseMessageType = {
     data: {
         market: string,
         bucket: string,
-        data: {
+        lines: {
             open: number,
             high: number,
             low: number,
             close: number,
             volume: number,
+            time: string,
         }[],
     }
 };

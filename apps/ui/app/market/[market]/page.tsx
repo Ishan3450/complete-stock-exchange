@@ -33,7 +33,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { CandlestickData, Time } from "lightweight-charts";
+import { CandlestickData, Time, UTCTimestamp } from "lightweight-charts";
 
 
 export default function MarketPage() {
@@ -67,6 +67,7 @@ export default function MarketPage() {
     const [loading, useLoading] = useState<boolean>(false);
     const [trades, useTrades] = useState<Trade[]>([]);
     const [chartData, useChartData] = useState<CandlestickData<Time>[]>([]);
+    const chartTimeBucketRef = useRef(chartTimeBucket);
 
     useEffect(() => {
         const uid = localStorage.getItem("uid");
@@ -85,6 +86,12 @@ export default function MarketPage() {
                         subscriptionName: `${market}_TRADES`
                     }
                 }));
+                ws.current?.send(JSON.stringify({
+                    type: "SUBSCRIBE",
+                    data: {
+                        subscriptionName: `${market}_TRADES_${chartTimeBucket}`.toUpperCase()
+                    }
+                }))
 
                 ws.current.onmessage = (message) => {
                     const data: WebsocketEngineMessageType | WebsocketDatabaseMessageType = JSON.parse(message.data);
@@ -96,7 +103,7 @@ export default function MarketPage() {
                         })
                         getMarketTrades();
                     }
-                    if (data.type === "WS_TICKER_UPDATE") {
+                    if (data.type === "WS_TICKER_UPDATE" && data.data.market.toLowerCase() === market.toLowerCase()) {
                         useTickerData({
                             open: data.data.open,
                             high: data.data.high,
@@ -104,6 +111,20 @@ export default function MarketPage() {
                             close: data.data.close,
                             volume: data.data.volume,
                         });
+                    }
+
+                    if (
+                        data.type === "WS_OHLCV_DATA" &&
+                        data.data.bucket.toLowerCase() === chartTimeBucketRef.current.toLowerCase() &&
+                        data.data.market.toLowerCase() === market.toLowerCase()
+                    ) {
+                        useChartData(data.data.lines.map((line) => ({
+                            open: Number(line.open),
+                            close: Number(line.close),
+                            high: Number(line.high),
+                            low: Number(line.low),
+                            time: Math.floor(new Date(line.time).getTime() / 1000) as UTCTimestamp, // .getTime returns milliseconds so dividing by 1000 to get unix epoch timestamp
+                        })));
                     }
                 }
             });
@@ -120,10 +141,38 @@ export default function MarketPage() {
         });
         getUserPortfolio();
         getMarketTrades();
+
+        return () => {
+            ws.current?.send(JSON.stringify({
+                type: "UNSUBSCRIBE",
+                data: {
+                    subscriptionName: `${market}_TRADES_${chartTimeBucketRef.current}`.toUpperCase()
+                }
+            }));
+        }
     }, []);
 
     useEffect(() => {
-        
+        axios.get(`${apiUrl}/klines`, {
+            params: {
+                market: market,
+                timeBucket: chartTimeBucket,
+            }
+        }).then((res) => {
+            const data: FrontendApiMessageType = res.data;
+
+            if (data.type === "Error") {
+                toast.error(data.errorMsg);
+            } else if (data.type === "OHLCV_LINES") {
+                useChartData(data.data.lines.map((line) => ({
+                    open: Number(line.open),
+                    close: Number(line.close),
+                    high: Number(line.high),
+                    low: Number(line.low),
+                    time: Math.floor(new Date(line.time).getTime() / 1000) as UTCTimestamp, // .getTime returns milliseconds so dividing by 1000 to get unix epoch timestamp
+                })));
+            }
+        });
     }, [chartTimeBucket]);
 
     function getUserPortfolio() {
@@ -156,8 +205,6 @@ export default function MarketPage() {
             userId: userId.current
         });
 
-        console.log(data);
-
         if (data.type === "Error") {
             toast.error(data.errorMsg);
             useLoading(false);
@@ -175,6 +222,30 @@ export default function MarketPage() {
 
     function areInputsValid() {
         return !isNaN(Number(price)) && !isNaN(Number(quantity)) && price !== "" && quantity !== "";
+    }
+
+    function handleChartTimeBucketOnChange(value: string) {
+        useChartTimeBucket((prev) => {
+            // unsubscribe to old subscription to stop receiving that updates
+            ws.current?.send(JSON.stringify({
+                type: "UNSUBSCRIBE",
+                data: {
+                    subscriptionName: `${market}_TRADES_${prev}`.toUpperCase()
+                }
+            }))
+
+            // subscribe to new subscription to start receiving that updates
+            ws.current?.send(JSON.stringify({
+                type: "SUBSCRIBE",
+                data: {
+                    subscriptionName: `${market}_TRADES_${value}`.toUpperCase()
+                }
+            }))
+
+            const newValue = value as ("minute" | "hour" | "day" | "week" | "month" | "year");
+            chartTimeBucketRef.current = newValue;
+            return newValue;
+        });
     }
 
     const splitted = market.split("_");
@@ -256,9 +327,7 @@ export default function MarketPage() {
                                         <DropdownMenuSeparator />
                                         <DropdownMenuRadioGroup
                                             value={chartTimeBucket}
-                                            onValueChange={(value: string) => {
-                                                useChartTimeBucket(value as ("minute" | "hour" | "day" | "week" | "month" | "year"));
-                                            }}>
+                                            onValueChange={handleChartTimeBucketOnChange}>
                                             <DropdownMenuRadioItem value="minute">Minute</DropdownMenuRadioItem>
                                             <DropdownMenuRadioItem value="hour">Hour</DropdownMenuRadioItem>
                                             <DropdownMenuRadioItem value="day">Day</DropdownMenuRadioItem>

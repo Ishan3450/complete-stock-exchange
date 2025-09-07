@@ -358,7 +358,6 @@ export class Engine {
      * NOTE: Currently not utilzing this function
      */
     private _updateDbOrders(newOrder: Order, fills: Fill[]): void {
-        // TODO: to check here is the newOrder.filled is correctly updated or not (TO check pass by ref worked as expected or not)
         RedisManager.getInstance().pushMessageToQueue(
             "db_processor",
             {
