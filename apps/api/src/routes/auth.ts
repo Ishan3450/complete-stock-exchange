@@ -5,7 +5,10 @@ import { dbClient } from "../dbClient";
 export const authRouter = Router();
 
 const client = dbClient;
-createTableIfNotExists();
+
+(async () => {
+    await createTableIfNotExists();
+})();
 
 authRouter.post("/signup", async (req: Request, res: Response) => {
     try {
@@ -15,17 +18,15 @@ authRouter.post("/signup", async (req: Request, res: Response) => {
             return res.json({ type: "Error", errorMsg: "All fields are required" });
         }
 
-        // check if user exists
-        const checkUser = await client.query(
+        const checkUserExists = await client.query(
             "SELECT * FROM users WHERE email = $1",
             [email]
         );
 
-        if (checkUser.rows.length > 0) {
+        if (checkUserExists.rows.length > 0) {
             return res.json({ type: "Error", errorMsg: "User already exists" });
         }
 
-        // insert user
         const result = await client.query(
             "INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id",
             [username, email, password]
@@ -67,7 +68,7 @@ authRouter.post("/signin", async (req: Request, res: Response) => {
 
         res.json({ type: "SUCCESS", userId: user.id });
     } catch (error) {
-        console.log(error);
+        console.error(error);
         res.json({ type: "Error", errorMsg: "Server error" });
     }
 });

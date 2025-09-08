@@ -19,6 +19,6 @@ depthRouter.get("/get", async (req: Request, res: Response) => {
         data: {
             market: market as string
         }
-    })
+    });
     res.status(200).json(response);
 })

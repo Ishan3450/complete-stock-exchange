@@ -34,10 +34,6 @@ app.get(`${baseUrl}/markets`, async (req: Request, res: Response) => {
   }
 });
 
-app.get('/health', (req: Request, res: Response) => {
-  res.send('Healthy!');
-});
-
 app.listen(apiPort, () => {
   console.log(`Server is running at ${apiUrl}`);
 });

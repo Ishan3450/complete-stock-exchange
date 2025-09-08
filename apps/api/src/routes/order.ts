@@ -71,7 +71,16 @@ orderRouter.get("/all", async (req: Request, res: Response) => {
     }
 
     const subQueries: string[] = rows[0]["array_agg"].map((market: string) => (`
-        SELECT orderid as "orderId", price, quantity, INITCAP(side) as side, filled, base_asset, quote_asset FROM ${market}_orders WHERE userid = $1
+        SELECT
+            orderid as "orderId",
+            price,
+            quantity,
+            INITCAP(side) as side,
+            filled,
+            base_asset,
+            quote_asset
+        FROM ${market}_orders
+        WHERE userid = $1
     `));
 
     const finalQuery = subQueries.join(" UNION ALL ");
