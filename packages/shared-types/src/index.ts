@@ -11,6 +11,7 @@ export interface Order {
     filled: number;
     base_asset?: string;
     quote_asset?: string;
+    is_cancelled?: boolean;
 }
 
 export interface Fill {
@@ -124,6 +125,7 @@ export type FrontendApiMessageType = Error | {
         filled: number,
         base_asset: string,
         quote_asset: string,
+        is_cancelled: boolean,
     },
     orderTrades: {
         price: number,

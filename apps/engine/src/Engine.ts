@@ -1,3 +1,4 @@
+import { dbClient } from "./dbClient";
 import { OrderBook, OrderExecuted } from "./OrderBook";
 import { RedisManager } from "./RedisManager";
 import { Fill, Order, EngineApiMessageType, UserInterface } from "@repo/shared-types/types";
@@ -114,6 +115,12 @@ export class Engine {
                                 }
                             }
                         }
+
+                        await dbClient.query(`
+                            UPDATE ${market}_orders
+                            SET is_cancelled = TRUE
+                            WHERE orderid = $1
+                        `, [orderId]);
 
                         this._wsUpdateDepthAndSend(market);
                     } catch (error: any) {

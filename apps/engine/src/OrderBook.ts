@@ -65,7 +65,8 @@ export class OrderBook {
                 userid           INT                  NOT NULL,
                 filled           NUMERIC(10,2)        NOT NULL,
                 base_asset       VARCHAR              NOT NULL,
-                quote_asset      VARCHAR              NOT NULL
+                quote_asset      VARCHAR              NOT NULL,
+                is_cancelled     BOOLEAN              DEFAULT FALSE
             );
         `);
         await dbClient.query(`

@@ -2,6 +2,7 @@ import { Order } from "@repo/shared-types/types"
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { LinkIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { getOrderState } from "@/lib/common";
 
 type OrdersProps = {
     orders: Omit<Order, 'userId'>[];
@@ -25,6 +26,7 @@ export default function Orders({ orders }: OrdersProps) {
                         <TableHead>Base Asset</TableHead>
                         <TableHead>Quote Asset</TableHead>
                         <TableHead>Link</TableHead>
+                        <TableHead>Order State</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -47,6 +49,7 @@ export default function Orders({ orders }: OrdersProps) {
                                         )}
                                     />
                                 </TableCell>
+                                <TableCell>{order.is_cancelled ? "Cancelled" : getOrderState(order)}</TableCell>
                             </TableRow>
                         )
                     })}

@@ -25,7 +25,7 @@ orderRouter.get("/", async (req: Request, res: Response) => {
 
     const orderInfo = await dbClient.query(`
         SELECT
-            price, quantity, side, filled, base_asset, quote_asset
+            price, quantity, side, filled, base_asset, quote_asset, is_cancelled
         FROM ${market}_orders
         WHERE userid = $1 AND orderid = $2 AND base_asset = $3 AND quote_asset = $4
     `, [userId, orderId, baseAsset, quoteAsset]);
@@ -78,7 +78,8 @@ orderRouter.get("/all", async (req: Request, res: Response) => {
             INITCAP(side) as side,
             filled,
             base_asset,
-            quote_asset
+            quote_asset,
+            is_cancelled
         FROM ${market}_orders
         WHERE userid = $1
     `));
@@ -122,6 +123,6 @@ orderRouter.delete("/cancel", async (req: Request, res: Response) => {
             userId,
             side
         }
-    })
+    });
     res.status(200).json(response);
 });

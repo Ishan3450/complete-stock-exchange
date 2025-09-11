@@ -1,11 +1,13 @@
 "use client"
 
 import Container from "@/components/container";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getOrderState } from "@/lib/common";
 import { apiUrl } from "@repo/shared-types/portsAndUrl";
 import { FrontendApiMessageType } from "@repo/shared-types/types";
 import axios, { AxiosResponse } from "axios";
-import { ChevronLeftIcon } from "lucide-react";
+import { ChevronLeftIcon, Loader2Icon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -15,6 +17,7 @@ export default function Order() {
     const router = useRouter();
     const { market, orderId } = useParams<{ market: string, orderId: string }>();
     const [baseAsset, quoteAsset] = market.split("_");
+    const [loading, useLoading] = useState<boolean>(false);
 
     if (!baseAsset || !quoteAsset) {
         router.back();
@@ -28,11 +31,13 @@ export default function Order() {
         quantity: number,
         side: "buy" | "sell",
         filled: number,
+        isCancelled: boolean,
     }>({
         price: 0,
         quantity: 0,
         side: "buy",
         filled: 0,
+        isCancelled: true
     });
     const [orderTrades, useOrderTrades] = useState<{
         price: number,
@@ -70,16 +75,55 @@ export default function Order() {
                 quantity: Number(data.orderInfo.quantity),
                 side: data.orderInfo.side,
                 filled: Number(data.orderInfo.filled),
+                isCancelled: data.orderInfo.is_cancelled,
             });
             useOrderTrades(data.orderTrades);
         }
     }
 
+    async function handleCancelOrder() {
+        useLoading(true);
+        const response: FrontendApiMessageType = await axios.delete(`${apiUrl}/order/cancel`, {
+            data: {
+                orderId,
+                market,
+                userId: localStorage.getItem("uid"),
+                side: orderInfo.side
+            }
+        })
+
+        useLoading(false);
+        if (response.type === "Error") {
+            toast.error(response.errorMsg);
+        } else {
+            router.back();
+        }
+    }
+
     return (
         <Container className="pt-10 pb-5 grid gap-5">
-            <div className="text-4xl font-medium flex gap-3 items-center">
-                <span onClick={() => router.back()} className="hover:text-gray-500 cursor-pointer"><ChevronLeftIcon size={25} /></span>
-                <span>Order Summary</span>
+            <div className="flex justify-between items-center">
+                <div className="text-4xl font-medium flex gap-3 items-center">
+                    <span onClick={() => router.back()} className="hover:text-gray-500 cursor-pointer"><ChevronLeftIcon size={25} /></span>
+                    <span>Order Summary</span>
+                </div>
+                {!orderInfo.isCancelled && orderInfo.quantity !== orderInfo.filled && (
+                    loading ? (
+                        <div className="flex gap-1 items-center p-3 border rounded-lg">
+                            <Loader2Icon className="animate-spin" />
+                            Cancelling your order
+                        </div>
+                    ) : (
+                        <Button
+                            variant={"outline"}
+                            size={"lg"}
+                            className="text-red-400 text-md border-red-200 hover:bg-red-400 hover:text-white cursor-pointer"
+                            onClick={handleCancelOrder}
+                        >
+                            Cancel Order
+                        </Button>
+                    )
+                )}
             </div>
 
             {/* Order Information */}
@@ -89,6 +133,7 @@ export default function Order() {
                 <OrderSummaryItem title="Quantity" value={`${orderInfo.quantity} ${baseAsset}`} />
                 <OrderSummaryItem title="Executed" value={`${orderInfo.filled} ${baseAsset}`} />
                 <OrderSummaryItem title="Side" value={orderInfo.side} valueStyle={`${orderInfo.side === "buy" ? "text-green-500" : "text-red-400"} capitalize font-semibold`} />
+                <OrderSummaryItem title="Order State" value={getOrderState(orderInfo)} />
             </div>
 
             {/* Trades */}
