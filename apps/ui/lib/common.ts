@@ -12,8 +12,8 @@ export function getOrderState(orderInfo: {
     if (orderInfo.isCancelled) {
         return "Cancelled";
     }
-    if (orderInfo.filled === 0) {
+    if (Number(orderInfo.filled) === 0) {
         return "In Progress";
     }
-    return orderInfo.quantity === orderInfo.filled ? "Done" : "Partial";
+    return Number(orderInfo.quantity) === Number(orderInfo.filled) ? "Done" : "Partial";
 }

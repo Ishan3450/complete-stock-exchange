@@ -87,18 +87,7 @@ export class OrderBook {
             [order.orderId]
         );
 
-        // TODO: to check whether the if block gets executed even a single time or not.
-        // because I don't think the if block gets executed even a single time
         if (rowCount) {
-            // TODO: in below udpate no need to add quantity field
-            await dbClient.query(`
-                UPDATE ${tableName}
-                SET
-                    quantity = $1,
-                    filled = $2
-                WHERE
-                    orderid = $3
-            `, [order.quantity, order.filled, order.orderId]);
         } else {
             await dbClient.query(`
                 INSERT INTO ${tableName} (orderid, price, quantity, side, userid, filled, base_asset, quote_asset)

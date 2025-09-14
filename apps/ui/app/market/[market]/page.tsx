@@ -146,6 +146,13 @@ export default function MarketPage() {
             ws.current?.send(JSON.stringify({
                 type: "UNSUBSCRIBE",
                 data: {
+                    subscriptionName: `${market}_TRADES`
+                }
+            }));
+
+            ws.current?.send(JSON.stringify({
+                type: "UNSUBSCRIBE",
+                data: {
                     subscriptionName: `${market}_TRADES_${chartTimeBucketRef.current}`.toUpperCase()
                 }
             }));
@@ -248,6 +255,30 @@ export default function MarketPage() {
         });
     }
 
+    function handleTabsOnChange(value: string) {
+        useTabName((prev) => {
+            if (prev === "chart") {
+                ws.current?.send(JSON.stringify({
+                    type: "UNSUBSCRIBE",
+                    data: {
+                        subscriptionName: `${market}_TRADES_${chartTimeBucketRef.current}`.toUpperCase()
+                    }
+                }));
+            }
+
+            if (value === "chart") {
+                ws.current?.send(JSON.stringify({
+                    type: "SUBSCRIBE",
+                    data: {
+                        subscriptionName: `${market}_TRADES_${chartTimeBucketRef.current}`.toUpperCase()
+                    }
+                }));
+            }
+
+            return value as ("chart" | "trades" | "orderbook" | "portfolio");
+        });
+    }
+
     const splitted = market.split("_");
     return (
         <div className="p-3 flex bg-gray-50 h-screen gap-3">
@@ -305,9 +336,7 @@ export default function MarketPage() {
                                     <DropdownMenuSeparator />
                                     <DropdownMenuRadioGroup
                                         value={tabName}
-                                        onValueChange={(value: string) => {
-                                            useTabName(value as ("chart" | "trades" | "orderbook" | "portfolio"));
-                                        }}>
+                                        onValueChange={handleTabsOnChange}>
                                         <DropdownMenuRadioItem value="chart">Chart</DropdownMenuRadioItem>
                                         <DropdownMenuRadioItem value="trades">Trades</DropdownMenuRadioItem>
                                         <DropdownMenuRadioItem value="orderbook">Orderbook</DropdownMenuRadioItem>

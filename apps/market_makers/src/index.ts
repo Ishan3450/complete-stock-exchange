@@ -2,7 +2,7 @@ import { redisUrl, simulate } from "@repo/shared-types/portsAndUrl";
 import { MarketMakerEngineMessageType } from "@repo/shared-types/types";
 import { createClient } from "redis";
 
-const MAX_ALLOWED = 15;
+const MAX_ALLOWED = 20;
 const USER_IDS = ["99996", "99997", "99998", "99999"];
 const redisClient = createClient({ url: redisUrl });
 const sub = createClient({ url: redisUrl });
@@ -31,25 +31,22 @@ async function main() {
         console.log(parsedData);
 
         parsedData.data.forEach(async (marketStat) => {
-            if (marketStat.totalAsks < MAX_ALLOWED) {
-                let asksToAdd = MAX_ALLOWED - marketStat.totalAsks;
-                console.log(`${asksToAdd} asks will be added in ${marketStat.market}`);
+            let asksToAdd = Math.max(0, MAX_ALLOWED - marketStat.totalAsks);
+            let bidsToAdd = Math.max(0, MAX_ALLOWED - marketStat.totalBids);
+            console.log(`${asksToAdd} asks and ${bidsToAdd} bids will be added in ${marketStat.market}`);
 
-                while (asksToAdd > 0) {
+            while (asksToAdd > 0 || bidsToAdd > 0) {
+                if (asksToAdd > 0) {
                     await _addAsk(marketStat.market);
                     asksToAdd--;
                 }
-            }
-            if (marketStat.totalBids < MAX_ALLOWED) {
-                let bidsToAdd = MAX_ALLOWED - marketStat.totalBids;
-                console.log(`${bidsToAdd} bids will be added in ${marketStat.market}`);
-
-                while (bidsToAdd > 0) {
+                if (bidsToAdd > 0) {
                     await _addBid(marketStat.market);
                     bidsToAdd--;
                 }
+                await new Promise((r) => setTimeout(r, 500));
             }
-        })
+        });
     });
 
     await redisClient.lPush("engineMessages", JSON.stringify({
@@ -126,7 +123,11 @@ function getRandomUserIdx() {
 }
 
 function getRandomNumber(multiplier: number): number {
-    return Number((Math.random() * multiplier).toFixed(2));
+    const number = Number((Math.random() * multiplier).toFixed(2));
+    if (number === 0) {
+        return getRandomNumber(multiplier);
+    }
+    return number;
 }
 
 if (simulate) {
@@ -134,4 +135,8 @@ if (simulate) {
         init();
         setInterval(main, 30 * 1000);
     }, 30 * 1000);
+
+    // setTimeout(() => {
+    //     init();
+    // }, 30 * 1000);
 }
