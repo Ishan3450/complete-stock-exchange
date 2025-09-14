@@ -29,7 +29,11 @@ This project is a simplified implementation of an **order-matching exchange syst
 
 ## **Architecture**
 
+<img width="2765" height="1481" alt="Exchange Project Architecture" src="https://github.com/user-attachments/assets/1643d300-b5b4-41c6-a511-715b18aa1b9a" />
+
 ## **Demo**
+
+https://github.com/user-attachments/assets/a4f96f8f-bd86-4871-b862-dee34eec984e
 
 ## **Project Structure (Monorepo structure)**
 
